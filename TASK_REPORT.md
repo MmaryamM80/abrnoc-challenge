@@ -45,4 +45,4 @@ The PDF permits Ceph, LINSTOR/DRBD, or another justified HA storage solution; it
 - [Command ledger](docs/commands.md): execution and validation record.
 - [October 20 recheck](docs/recheck-2026-10-20.md): line-by-line audit, fresh live checks, and remaining limits.
 
-The reviewed repository is ready locally for [MmaryamM80/abrnoc-challenge](https://github.com/MmaryamM80/abrnoc-challenge). GitHub rejected the push because the Mac's SSH key authenticates as `marco1370`, which has no write access to that repository. The local commit contains no server password, private SSH key, or local workspace metadata.
+The reviewed repository was published to [MmaryamM80/abrnoc-challenge](https://github.com/MmaryamM80/abrnoc-challenge) using a repository-scoped deploy key. The published files contain no server password, private SSH key, or local workspace metadata.

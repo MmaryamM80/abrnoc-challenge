@@ -13,7 +13,7 @@ The exercise asks for a **partial implementation** of a KVM host plus operationa
 | Analyze supplied logs, causal chain, root cause versus symptom, noise | Written | [Log analysis](log-analysis.md). |
 | Run Ansible twice against a VM and show second output | Verified | [Initial local repeat](../evidence/second-run.txt) and [Mac execution](../evidence/mac-apply-run.txt) followed by [Mac repeat](../evidence/mac-second-run.txt). |
 | Force two alerts and observe them in Alertmanager; report failures | Verified with safe test metrics | [Alertmanager firing response](../evidence/alert-firing.json) and [failures corrected](../evidence/validation-summary.md). Test metrics were removed afterward. |
-| Git repository containing role, monitoring, README, architecture, incident, and log documents | Ready locally; publication blocked | The reviewed commit is ready for [MmaryamM80/abrnoc-challenge](https://github.com/MmaryamM80/abrnoc-challenge). GitHub rejected the push because the current SSH account lacks write access. |
+| Git repository containing role, monitoring, README, architecture, incident, and log documents | Published | The reviewed repository is available at [MmaryamM80/abrnoc-challenge](https://github.com/MmaryamM80/abrnoc-challenge). |
 
 ## Later requests and additional laboratory work
 

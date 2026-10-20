@@ -38,4 +38,4 @@ The [acceptance matrix](docs/acceptance-matrix.md) separates PDF requirements fr
 ## Handoff
 
 - [x] Provide an English Markdown README, Ansible source, monitoring rules, architecture, incident response, log analysis, evidence, and this checklist in the local Git repository. [Report](TASK_REPORT.md)
-- [ ] Publish the reviewed repository to [MmaryamM80/abrnoc-challenge](https://github.com/MmaryamM80/abrnoc-challenge). The staged-file check passed, but GitHub rejected the push because the Mac's SSH key belongs to `marco1370`, which has no write access to this repository.
+- [x] Publish the reviewed repository to [MmaryamM80/abrnoc-challenge](https://github.com/MmaryamM80/abrnoc-challenge). A repository-scoped deploy key was used for the push.
