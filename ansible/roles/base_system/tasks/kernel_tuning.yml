@@ -1,0 +1,9 @@
+---
+- name: Install conservative kernel settings
+  ansible.builtin.copy:
+    content: "# Keep VM I/O asynchronous capacity and modest host swap tendency.\nfs.aio-max-nr = 1048576\nvm.swappiness = 10\n"
+    dest: /etc/sysctl.d/90-virt-host.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Apply sysctl

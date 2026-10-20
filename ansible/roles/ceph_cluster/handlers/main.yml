@@ -1,0 +1,5 @@
+---
+- name: Restart manager
+  ansible.builtin.systemd_service:
+    name: "ceph-mgr@{{ inventory_hostname }}"
+    state: restarted

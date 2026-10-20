@@ -11,29 +11,22 @@
       - { name: ha1, mac: '52:54:00:ab:10:21', ip: '192.168.122.121' }
       - { name: ha2, mac: '52:54:00:ab:10:22', ip: '192.168.122.122' }
       - { name: ha3, mac: '52:54:00:ab:10:23', ip: '192.168.122.123' }
-  tasks:
+  pre_tasks:
     - name: Require enough memory for three lab nodes
       ansible.builtin.assert:
         that: ansible_facts['memtotal_mb'] | int >= 9500
         fail_msg: This lab needs at least 9.5 GiB RAM on the KVM host.
 
-    - name: Apply baseline with isolated libvirt DNS and DHCP access
-      ansible.builtin.import_role:
-        name: host_baseline
-
-    - name: Install KVM and exporters
-      ansible.builtin.import_role:
-        name: virt_host
-
-    - name: Configure administrator access
-      ansible.builtin.import_role:
-        name: host_access
-
-    - name: Install local monitoring
-      ansible.builtin.import_role:
-        name: host_monitoring
+  roles:
+    - role: base_system
+    - role: kvm
+    - role: host_metrics
+    - role: host_access
+    - role: host_firewall
+    - role: local_monitoring
       when: virt_host_demo_monitoring | default(true) | bool
 
+  tasks:
     - name: Apply lab network firewall rule before starting guests
       ansible.builtin.meta: flush_handlers
 

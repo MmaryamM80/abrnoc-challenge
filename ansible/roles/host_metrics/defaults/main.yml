@@ -1,0 +1,2 @@
+---
+virt_host_node_exporter_textfile_dir: /var/lib/prometheus/node-exporter

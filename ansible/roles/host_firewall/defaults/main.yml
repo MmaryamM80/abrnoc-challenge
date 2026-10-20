@@ -1,0 +1,3 @@
+---
+virt_host_ssh_port: 22
+virt_host_lab_network_enabled: false

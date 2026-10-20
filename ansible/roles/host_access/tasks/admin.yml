@@ -1,0 +1,43 @@
+---
+- name: Require a provisioning public key
+  ansible.builtin.assert:
+    that:
+      - virt_host_admin_public_key is match('^ssh-(ed25519|rsa) ')
+    fail_msg: Provide a valid SSH public key in keys/admin.pub.
+
+- name: Create the administration user
+  ansible.builtin.user:
+    name: "{{ virt_host_admin_user }}"
+    shell: /bin/bash
+    groups: sudo,libvirt
+    append: true
+    create_home: true
+    state: present
+
+- name: Create administrator SSH directory
+  ansible.builtin.file:
+    path: "/home/{{ virt_host_admin_user }}/.ssh"
+    state: directory
+    owner: "{{ virt_host_admin_user }}"
+    group: "{{ virt_host_admin_user }}"
+    mode: '0700'
+
+- name: Manage administrator public key without duplicating or removing unrelated keys
+  ansible.builtin.lineinfile:
+    path: "/home/{{ virt_host_admin_user }}/.ssh/authorized_keys"
+    regexp: '^{{ (virt_host_admin_public_key.split()[:2] | join(" ")) | regex_escape }}(?:\s+.*)?$'
+    line: "{{ virt_host_admin_public_key }}"
+    create: true
+    owner: "{{ virt_host_admin_user }}"
+    group: "{{ virt_host_admin_user }}"
+    mode: '0600'
+  no_log: true
+
+- name: Permit passwordless administration for automation user
+  ansible.builtin.copy:
+    content: "{{ virt_host_admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    dest: "/etc/sudoers.d/90-{{ virt_host_admin_user }}"
+    owner: root
+    group: root
+    mode: '0440'
+    validate: '/usr/sbin/visudo -cf %s'

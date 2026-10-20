@@ -1,0 +1,162 @@
+---
+- name: Check capacity before adding a 4 GiB guest
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['memtotal_mb'] | int >= 11000
+      - ansible_facts['memfree_mb'] | int >= 1500
+    fail_msg: Insufficient host memory for this isolated Ceph lab.
+
+- name: Create Ceph lab image directory
+  ansible.builtin.file:
+    path: "{{ ceph_lab_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Check Debian base image in Ceph directory
+  ansible.builtin.stat:
+    path: "{{ ceph_lab_image }}"
+  register: ceph_base_image
+
+- name: Fetch the official Debian 13 cloud image
+  ansible.builtin.get_url:
+    url: "{{ ceph_lab_image_url }}"
+    dest: "{{ ceph_lab_image }}"
+    mode: '0644'
+    timeout: 120
+  when: not ceph_base_image.stat.exists
+
+- name: Inspect DHCP reservations
+  ansible.builtin.command: virsh -c qemu:///system net-dumpxml default
+  register: ceph_net_xml
+  changed_when: false
+
+- name: Reserve the Ceph guest address
+  ansible.builtin.command:
+    argv:
+      - virsh
+      - -c
+      - qemu:///system
+      - net-update
+      - default
+      - add
+      - ip-dhcp-host
+      - "<host mac='{{ ceph_lab_mac }}' name='{{ ceph_lab_name }}' ip='{{ ceph_lab_ip }}'/>"
+      - --live
+      - --config
+  when: ceph_lab_mac not in ceph_net_xml.stdout
+
+- name: Render guest cloud-init data using the administrator public key
+  ansible.builtin.template:
+    src: ceph-user-data.yml.j2
+    dest: "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-user-data.yml"
+    mode: '0644'
+
+- name: Write guest metadata
+  ansible.builtin.copy:
+    dest: "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-meta-data.yml"
+    content: "instance-id: {{ ceph_lab_name }}-v1\nlocal-hostname: {{ ceph_lab_name }}\n"
+    mode: '0644'
+
+- name: Inspect existing seed image
+  ansible.builtin.stat:
+    path: "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-seed.iso"
+  register: ceph_seed
+
+- name: Build cloud-init seed image once
+  ansible.builtin.command:
+    argv:
+      - cloud-localds
+      - "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-seed.iso"
+      - "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-user-data.yml"
+      - "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-meta-data.yml"
+  when: not ceph_seed.stat.exists
+
+- name: Create sparse guest boot disk
+  ansible.builtin.command:
+    argv:
+      - qemu-img
+      - create
+      - -f
+      - qcow2
+      - -F
+      - qcow2
+      - -b
+      - "{{ ceph_lab_image }}"
+      - "{{ ceph_lab_dir }}/{{ ceph_lab_name }}.qcow2"
+      - 12G
+    creates: "{{ ceph_lab_dir }}/{{ ceph_lab_name }}.qcow2"
+
+- name: Create dedicated sparse OSD disk
+  ansible.builtin.command:
+    argv:
+      - qemu-img
+      - create
+      - -f
+      - qcow2
+      - "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-osd.qcow2"
+      - 8G
+    creates: "{{ ceph_lab_dir }}/{{ ceph_lab_name }}-osd.qcow2"
+
+- name: Inspect existing Ceph guest
+  ansible.builtin.command: "virsh -c qemu:///system dominfo {{ ceph_lab_name }}"
+  register: ceph_domain
+  failed_when: false
+  changed_when: false
+
+- name: Define and boot the isolated guest
+  ansible.builtin.command:
+    argv:
+      - virt-install
+      - --connect
+      - qemu:///system
+      - --name
+      - "{{ ceph_lab_name }}"
+      - --memory
+      - '4096'
+      - --vcpus
+      - '2'
+      - --cpu
+      - host-passthrough
+      - --disk
+      - "path={{ ceph_lab_dir }}/{{ ceph_lab_name }}.qcow2,bus=virtio"
+      - --disk
+      - "path={{ ceph_lab_dir }}/{{ ceph_lab_name }}-osd.qcow2,bus=virtio,serial=CEPHOSD1"
+      - --disk
+      - "path={{ ceph_lab_dir }}/{{ ceph_lab_name }}-seed.iso,device=cdrom"
+      - --network
+      - "network=default,model=virtio,mac={{ ceph_lab_mac }}"
+      - --osinfo
+      - debian13
+      - --graphics
+      - vnc,listen=127.0.0.1
+      - --video
+      - virtio
+      - --import
+      - --autostart
+      - --noautoconsole
+  when: ceph_domain.rc != 0
+
+- name: Read Ceph guest state after definition
+  ansible.builtin.command: "virsh -c qemu:///system domstate {{ ceph_lab_name }}"
+  register: ceph_domain_state
+  changed_when: false
+
+- name: Start the Ceph guest if it is shut off
+  ansible.builtin.command: "virsh -c qemu:///system start {{ ceph_lab_name }}"
+  when: ceph_domain_state.stdout | trim == 'shut off'
+
+- name: Read Ceph guest autostart setting
+  ansible.builtin.command: "virsh -c qemu:///system dominfo {{ ceph_lab_name }}"
+  register: ceph_domain_info
+  changed_when: false
+
+- name: Enable Ceph guest autostart
+  ansible.builtin.command: "virsh -c qemu:///system autostart {{ ceph_lab_name }}"
+  when: "'Autostart:      enable' not in ceph_domain_info.stdout"
+
+- name: Wait for SSH on the Ceph guest
+  ansible.builtin.wait_for:
+    host: "{{ ceph_lab_ip }}"
+    port: 22
+    delay: 5
+    timeout: 240

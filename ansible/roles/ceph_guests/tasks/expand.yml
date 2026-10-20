@@ -1,0 +1,166 @@
+---
+- name: Inspect existing guest domains
+  ansible.builtin.command: "virsh -c qemu:///system dominfo {{ item.name }}"
+  register: domains
+  failed_when: false
+  changed_when: false
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Require host memory before adding two 2 GiB guests
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['memtotal_mb'] | int >= 11000
+      - ansible_facts['memavailable_mb'] | int >= 3500
+  when: domains.results | selectattr('rc', 'ne', 0) | list | length > 0
+
+- name: Require the Ceph-owned Debian base image
+  ansible.builtin.stat:
+    path: "{{ ceph_base_image }}"
+  register: base_image
+
+- name: Verify base image exists
+  ansible.builtin.assert:
+    that: base_image.stat.exists
+
+- name: Inspect DHCP reservations
+  ansible.builtin.command: virsh -c qemu:///system net-dumpxml default
+  register: net_xml
+  changed_when: false
+
+- name: Reserve each guest address
+  ansible.builtin.command:
+    argv:
+      - virsh
+      - -c
+      - qemu:///system
+      - net-update
+      - default
+      - add
+      - ip-dhcp-host
+      - "<host mac='{{ item.mac }}' name='{{ item.name }}' ip='{{ item.ip }}'/>"
+      - --live
+      - --config
+  loop: "{{ ceph_ha_guests }}"
+  when: item.mac not in net_xml.stdout
+
+- name: Render cloud-init data
+  ansible.builtin.template:
+    src: ceph-ha-user-data.yml.j2
+    dest: "{{ ceph_lab_dir }}/{{ item.name }}-user-data.yml"
+    mode: '0644'
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Write guest metadata
+  ansible.builtin.copy:
+    dest: "{{ ceph_lab_dir }}/{{ item.name }}-meta-data.yml"
+    content: "instance-id: {{ item.name }}-v1\nlocal-hostname: {{ item.name }}\n"
+    mode: '0644'
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Inspect existing seed images
+  ansible.builtin.stat:
+    path: "{{ ceph_lab_dir }}/{{ item.name }}-seed.iso"
+  loop: "{{ ceph_ha_guests }}"
+  register: seeds
+
+- name: Build cloud-init seed images once
+  ansible.builtin.command:
+    argv:
+      - cloud-localds
+      - "{{ ceph_lab_dir }}/{{ item.item.name }}-seed.iso"
+      - "{{ ceph_lab_dir }}/{{ item.item.name }}-user-data.yml"
+      - "{{ ceph_lab_dir }}/{{ item.item.name }}-meta-data.yml"
+  loop: "{{ seeds.results }}"
+  when: not item.stat.exists
+
+- name: Create sparse boot overlays
+  ansible.builtin.command:
+    argv:
+      - qemu-img
+      - create
+      - -f
+      - qcow2
+      - -F
+      - qcow2
+      - -b
+      - "{{ ceph_base_image }}"
+      - "{{ ceph_lab_dir }}/{{ item.name }}.qcow2"
+      - 12G
+    creates: "{{ ceph_lab_dir }}/{{ item.name }}.qcow2"
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Create dedicated sparse OSD disks
+  ansible.builtin.command:
+    argv:
+      - qemu-img
+      - create
+      - -f
+      - qcow2
+      - "{{ ceph_lab_dir }}/{{ item.name }}-osd.qcow2"
+      - 8G
+    creates: "{{ ceph_lab_dir }}/{{ item.name }}-osd.qcow2"
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Define and boot new guests
+  ansible.builtin.command:
+    argv:
+      - virt-install
+      - --connect
+      - qemu:///system
+      - --name
+      - "{{ item.item.name }}"
+      - --memory
+      - '2048'
+      - --vcpus
+      - '1'
+      - --cpu
+      - host-passthrough
+      - --disk
+      - "path={{ ceph_lab_dir }}/{{ item.item.name }}.qcow2,bus=virtio"
+      - --disk
+      - "path={{ ceph_lab_dir }}/{{ item.item.name }}-osd.qcow2,bus=virtio,serial={{ item.item.serial }}"
+      - --disk
+      - "path={{ ceph_lab_dir }}/{{ item.item.name }}-seed.iso,device=cdrom"
+      - --network
+      - "network=default,model=virtio,mac={{ item.item.mac }}"
+      - --osinfo
+      - debian13
+      - --graphics
+      - vnc,listen=127.0.0.1
+      - --video
+      - virtio
+      - --import
+      - --autostart
+      - --noautoconsole
+  loop: "{{ domains.results }}"
+  when: item.rc != 0
+
+- name: Read guest states
+  ansible.builtin.command: "virsh -c qemu:///system domstate {{ item.name }}"
+  register: guest_states
+  changed_when: false
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Start shut off guests
+  ansible.builtin.command: "virsh -c qemu:///system start {{ item.item.name }}"
+  loop: "{{ guest_states.results }}"
+  when: item.stdout | trim == 'shut off'
+
+- name: Read autostart settings
+  ansible.builtin.command: "virsh -c qemu:///system dominfo {{ item.name }}"
+  register: guest_info
+  changed_when: false
+  loop: "{{ ceph_ha_guests }}"
+
+- name: Enable guest autostart
+  ansible.builtin.command: "virsh -c qemu:///system autostart {{ item.item.name }}"
+  loop: "{{ guest_info.results }}"
+  when: "'Autostart:      enable' not in item.stdout"
+
+- name: Wait for guest SSH from the KVM host
+  ansible.builtin.wait_for:
+    host: "{{ item.ip }}"
+    port: 22
+    delay: 5
+    timeout: 300
+  loop: "{{ ceph_ha_guests }}"

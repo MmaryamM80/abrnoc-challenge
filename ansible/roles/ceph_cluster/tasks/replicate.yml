@@ -1,0 +1,90 @@
+---
+- name: Render replicated Ceph configuration on original monitor
+  ansible.builtin.template:
+    src: ceph-ha.conf.j2
+    dest: /etc/ceph/ceph.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Wait for three monitor quorum members
+  ansible.builtin.command: ceph quorum_status --format json
+  register: ceph_full_quorum
+  retries: 30
+  delay: 3
+  until: ceph_full_quorum.rc == 0 and ((ceph_full_quorum.stdout | from_json).quorum_names | length) == 3
+  changed_when: false
+
+- name: Wait for three up OSDs
+  ansible.builtin.command: ceph osd stat --format json
+  register: ceph_osd_stat
+  retries: 30
+  delay: 3
+  until: ceph_osd_stat.rc == 0 and ((ceph_osd_stat.stdout | from_json).num_up_osds | int) == 3
+  changed_when: false
+
+- name: Read current pool replication sizes
+  ansible.builtin.command: "ceph osd pool get {{ item }} size --format json"
+  loop: [.mgr, lab-objects]
+  register: ceph_pool_sizes
+  changed_when: false
+
+- name: Require three replicas for both pools
+  ansible.builtin.command: "ceph osd pool set {{ item.item }} size 3"
+  loop: "{{ ceph_pool_sizes.results }}"
+  when: (item.stdout | from_json).size | int != 3
+
+- name: Read current pool minimum sizes
+  ansible.builtin.command: "ceph osd pool get {{ item }} min_size --format json"
+  loop: [.mgr, lab-objects]
+  register: ceph_pool_mins
+  changed_when: false
+
+- name: Require two replicas before writes are acknowledged
+  ansible.builtin.command: "ceph osd pool set {{ item.item }} min_size 2"
+  loop: "{{ ceph_pool_mins.results }}"
+  when: (item.stdout | from_json).min_size | int != 2
+
+- name: Read cluster default replication size
+  ansible.builtin.command: ceph config get osd osd_pool_default_size
+  register: ceph_default_size
+  changed_when: false
+
+- name: Set default pool replication size
+  ansible.builtin.command: ceph config set global osd_pool_default_size 3
+  when: ceph_default_size.stdout | trim != '3'
+
+- name: Read cluster default minimum replication size
+  ansible.builtin.command: ceph config get osd osd_pool_default_min_size
+  register: ceph_default_min
+  changed_when: false
+
+- name: Set default pool write quorum
+  ansible.builtin.command: ceph config set global osd_pool_default_min_size 2
+  when: ceph_default_min.stdout | trim != '2'
+
+- name: Read enabled manager modules
+  ansible.builtin.command: ceph mgr module ls --format json
+  register: ceph_mgr_modules
+  changed_when: false
+
+- name: Disable unused NFS manager module
+  ansible.builtin.command: ceph mgr module disable nfs
+  when: "'nfs' in (ceph_mgr_modules.stdout | from_json).enabled_modules"
+
+- name: Wait for all placement groups to become clean
+  ansible.builtin.command: ceph -s --format json
+  register: ceph_final_status
+  retries: 60
+  delay: 5
+  until:
+    - ceph_final_status.rc == 0
+    - (ceph_final_status.stdout | from_json).health.status == 'HEALTH_OK'
+    - (ceph_final_status.stdout | from_json).pgmap.num_pgs > 0
+    - (ceph_final_status.stdout | from_json).pgmap.pgs_by_state | length == 1
+    - (ceph_final_status.stdout | from_json).pgmap.pgs_by_state[0].state_name == 'active+clean'
+  changed_when: false
+
+- name: Show cluster summary
+  ansible.builtin.debug:
+    var: ceph_final_status.stdout_lines

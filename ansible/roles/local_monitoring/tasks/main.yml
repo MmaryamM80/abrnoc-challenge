@@ -1,0 +1,6 @@
+---
+- name: Install local Prometheus
+  ansible.builtin.import_tasks: prometheus.yml
+
+- name: Install local Alertmanager
+  ansible.builtin.import_tasks: alertmanager.yml

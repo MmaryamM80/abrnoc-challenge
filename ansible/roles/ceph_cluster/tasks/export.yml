@@ -1,0 +1,20 @@
+---
+- name: Read persistent Ceph cluster identity
+  ansible.builtin.command: cat /etc/ceph/lab-fsid
+  register: ceph_fsid
+  changed_when: false
+
+- name: Export monitor authentication
+  ansible.builtin.command: ceph auth get mon. -o /etc/ceph/ceph-ha-mon.keyring
+  changed_when: false
+  no_log: true
+
+- name: Read bootstrap files for new guests
+  ansible.builtin.slurp:
+    src: "{{ item }}"
+  loop:
+    - /etc/ceph/ceph-ha-mon.keyring
+    - /etc/ceph/ceph.client.admin.keyring
+    - /var/lib/ceph/bootstrap-osd/ceph.keyring
+  register: ceph_bootstrap_files
+  no_log: true

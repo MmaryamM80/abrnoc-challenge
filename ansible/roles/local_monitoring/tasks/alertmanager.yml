@@ -1,0 +1,32 @@
+---
+- name: Install Alertmanager
+  ansible.builtin.apt:
+    name: prometheus-alertmanager
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Bind Alertmanager locally and disable one-host gossip
+  ansible.builtin.copy:
+    content: 'ARGS="--web.listen-address=127.0.0.1:9093 --cluster.listen-address="'
+    dest: /etc/default/prometheus-alertmanager
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Alertmanager
+
+- name: Install Alertmanager routing
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/alertmanager.yml"
+    dest: /etc/prometheus/alertmanager.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+    validate: '/usr/bin/amtool check-config %s'
+  notify: Restart Alertmanager
+
+- name: Enable Alertmanager
+  ansible.builtin.systemd_service:
+    name: prometheus-alertmanager
+    enabled: true
+    state: started

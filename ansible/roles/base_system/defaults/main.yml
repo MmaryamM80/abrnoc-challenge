@@ -1,0 +1,6 @@
+---
+virt_host_base_packages:
+  - sudo
+  - smartmontools
+  - nvme-cli
+  - mdadm

@@ -1,0 +1,37 @@
+---
+- name: Install SSH hardening drop-in
+  ansible.builtin.template:
+    src: ssh-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/00-virt-host.conf
+    owner: root
+    group: root
+    mode: '0644'
+  register: virt_host_ssh_dropin
+  notify: Reload SSH
+
+- name: Remove superseded SSH drop-in
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/50-virt-host.conf
+    state: absent
+  register: virt_host_ssh_old_dropin
+  notify: Reload SSH
+
+- name: Validate SSH configuration before reloading
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+  check_mode: false
+
+- name: Inspect effective SSH authentication policy
+  ansible.builtin.command: /usr/sbin/sshd -T
+  register: virt_host_sshd_effective
+  changed_when: false
+  check_mode: false
+
+- name: Require key-only non-root SSH access
+  ansible.builtin.assert:
+    that:
+      - "'permitrootlogin no' in virt_host_sshd_effective.stdout_lines"
+      - "'passwordauthentication no' in virt_host_sshd_effective.stdout_lines"
+      - "'kbdinteractiveauthentication no' in virt_host_sshd_effective.stdout_lines"
+    fail_msg: SSH authentication policy is overridden; inspect earlier sshd_config drop-ins.
+  when: not ansible_check_mode or not (virt_host_ssh_dropin.changed or virt_host_ssh_old_dropin.changed)

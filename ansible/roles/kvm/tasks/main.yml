@@ -1,0 +1,13 @@
+---
+- name: Install KVM and libvirt packages
+  ansible.builtin.apt:
+    name: "{{ virt_host_kvm_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Enable libvirt
+  ansible.builtin.systemd_service:
+    name: libvirtd
+    enabled: true
+    state: started

@@ -4,8 +4,27 @@
   become: true
   gather_facts: true
   roles:
-    - host_baseline
-    - virt_host
-    - host_access
-    - role: host_monitoring
+    - role: base_system
+    - role: kvm
+    - role: host_metrics
+    - role: host_access
+    - role: host_firewall
+    - role: local_monitoring
       when: virt_host_demo_monitoring | default(true) | bool
+
+# Ceph runs on KVM guests and has a separate lifecycle from the host roles.
+# Explicit tags prevent a normal host apply from creating or modifying guests.
+- ansible.builtin.import_playbook: ceph-host.yml
+  tags: [never, ceph-bootstrap]
+
+- ansible.builtin.import_playbook: ceph-node.yml
+  tags: [never, ceph-bootstrap]
+
+- ansible.builtin.import_playbook: ceph-ha-host.yml
+  tags: [never, ceph-ha]
+
+- ansible.builtin.import_playbook: ceph-ha-node.yml
+  tags: [never, ceph-ha]
+
+- ansible.builtin.import_playbook: ceph-verify.yml
+  tags: [never, ceph-verify]

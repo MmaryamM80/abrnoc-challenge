@@ -1,0 +1,30 @@
+---
+- name: Install node exporter
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create node exporter textfile directory for controlled alert tests
+  ansible.builtin.file:
+    path: "{{ virt_host_node_exporter_textfile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Bind node exporter to local monitoring and enable textfile metrics
+  ansible.builtin.copy:
+    content: 'ARGS="--web.listen-address=127.0.0.1:9100 --collector.textfile.directory={{ virt_host_node_exporter_textfile_dir }}"'
+    dest: /etc/default/prometheus-node-exporter
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart node exporter
+
+- name: Enable node exporter
+  ansible.builtin.systemd_service:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started

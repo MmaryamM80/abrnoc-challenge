@@ -1,0 +1,6 @@
+---
+- name: Install node exporter
+  ansible.builtin.import_tasks: node_exporter.yml
+
+- name: Install libvirt exporter
+  ansible.builtin.import_tasks: libvirt_exporter.yml

@@ -1,0 +1,171 @@
+---
+- name: Verify the expected guest address and dedicated disk
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['default_ipv4']['address'] == ansible_host
+      - ansible_facts['memtotal_mb'] | int >= 1800
+      - ceph_osd_serial in ['CEPHOSD2', 'CEPHOSD3']
+
+- name: Install Ceph packages
+  ansible.builtin.apt:
+    name: [ceph-mon, ceph-mgr, ceph-osd, ceph-volume, ceph-common, python3-crypt-r, lvm2, acl]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: ceph_package_install
+  retries: 4
+  delay: 10
+  until: ceph_package_install is succeeded
+
+- name: Install acknowledged-object recovery probe
+  ansible.builtin.copy:
+    src: ceph-rpo-probe.py
+    dest: /usr/local/bin/ceph-rpo-probe
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create Ceph configuration and bootstrap directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: ceph
+    group: ceph
+    mode: '0750'
+  loop:
+    - /etc/ceph
+    - /var/lib/ceph/bootstrap-osd
+    - "{{ ceph_mon_dir }}"
+    - "{{ ceph_mgr_dir }}"
+
+- name: Render replicated Ceph configuration
+  ansible.builtin.template:
+    src: ceph-ha.conf.j2
+    dest: /etc/ceph/ceph.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy existing secret keyrings
+  ansible.builtin.copy:
+    dest: "{{ item.dest }}"
+    content: "{{ hostvars['ceph1'].ceph_bootstrap_files.results[item.index].content | b64decode }}"
+    owner: ceph
+    group: ceph
+    mode: '0600'
+  loop:
+    - { index: 0, dest: /etc/ceph/ceph.mon.keyring }
+    - { index: 1, dest: /etc/ceph/ceph.client.admin.keyring }
+    - { index: 2, dest: /var/lib/ceph/bootstrap-osd/ceph.keyring }
+  no_log: true
+
+- name: Retrieve the current monitor map from the live cluster
+  ansible.builtin.command: ceph mon getmap -o /etc/ceph/ceph-ha-existing.monmap
+  changed_when: false
+
+- name: Check whether the monitor database exists
+  ansible.builtin.stat:
+    path: "{{ ceph_mon_dir }}/store.db"
+  register: ceph_mon_store
+
+- name: Initialize the new monitor from the live cluster map
+  ansible.builtin.command:
+    argv: [ceph-mon, --mkfs, -i, "{{ inventory_hostname }}", --monmap, /etc/ceph/ceph-ha-existing.monmap, --keyring, /etc/ceph/ceph.mon.keyring]
+  become_user: ceph
+  when: not ceph_mon_store.stat.exists
+
+- name: Start and enable the new monitor
+  ansible.builtin.systemd_service:
+    name: "ceph-mon@{{ inventory_hostname }}"
+    enabled: true
+    state: started
+
+- name: Wait for new monitor to enter quorum
+  ansible.builtin.command: ceph quorum_status --format json
+  register: ceph_quorum
+  retries: 30
+  delay: 3
+  until: ceph_quorum.rc == 0 and inventory_hostname in ((ceph_quorum.stdout | from_json).quorum_names | default([]))
+  changed_when: false
+
+- name: Detect affected Debian manager version
+  ansible.builtin.command:
+    argv: [dpkg-query, -W, '-f=${Version}', ceph-mgr]
+  register: ceph_mgr_version
+  changed_when: false
+
+- name: Replace bcrypt import in affected Debian manager
+  ansible.builtin.replace:
+    path: /usr/share/ceph/mgr/mgr_util.py
+    regexp: '^import bcrypt$'
+    replace: 'import crypt_r as crypt'
+    backup: true
+  when: ceph_mgr_version.stdout == '18.2.7+ds-1+deb13u1'
+  notify: Restart manager
+
+- name: Replace bcrypt salt generation in affected Debian manager
+  ansible.builtin.replace:
+    path: /usr/share/ceph/mgr/mgr_util.py
+    regexp: 'salt = bcrypt\.gensalt\(\)'
+    replace: 'salt = crypt.mksalt(crypt.METHOD_BLOWFISH, rounds=4096)'
+  when: ceph_mgr_version.stdout == '18.2.7+ds-1+deb13u1'
+  notify: Restart manager
+
+- name: Replace bcrypt password hashing in affected Debian manager
+  ansible.builtin.replace:
+    path: /usr/share/ceph/mgr/mgr_util.py
+    regexp: 'salt = salt_password\.encode\(''utf8''\)\n    return bcrypt\.hashpw\(password\.encode\(''utf8''\), salt\)\.decode\(''utf8''\)'
+    replace: 'salt = salt_password\n    return crypt.crypt(password, salt)'
+  when: ceph_mgr_version.stdout == '18.2.7+ds-1+deb13u1'
+  notify: Restart manager
+
+- name: Create manager authentication
+  ansible.builtin.command:
+    argv: [ceph, auth, get-or-create, "mgr.{{ inventory_hostname }}", mon, 'allow profile mgr', osd, 'allow *', mds, 'allow *', -o, "{{ ceph_mgr_dir }}/keyring"]
+    creates: "{{ ceph_mgr_dir }}/keyring"
+  no_log: true
+
+- name: Protect manager keyring
+  ansible.builtin.file:
+    path: "{{ ceph_mgr_dir }}/keyring"
+    owner: ceph
+    group: ceph
+    mode: '0600'
+
+- name: Start and enable standby manager
+  ansible.builtin.systemd_service:
+    name: "ceph-mgr@{{ inventory_hostname }}"
+    enabled: true
+    state: started
+
+- name: Restart manager after compatibility changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Inspect local OSD volumes
+  ansible.builtin.command: ceph-volume lvm list --format json
+  register: ceph_local_osds
+  changed_when: false
+
+- name: Read dedicated disk serial before provisioning
+  ansible.builtin.command: lsblk -dn -o SERIAL /dev/vdb
+  register: ceph_disk_serial
+  changed_when: false
+  when: (ceph_local_osds.stdout | from_json | length) == 0
+
+- name: Check dedicated disk for pre-existing signatures
+  ansible.builtin.command: wipefs -n /dev/vdb
+  register: ceph_disk_signatures
+  changed_when: false
+  when: (ceph_local_osds.stdout | from_json | length) == 0
+
+- name: Require the intended empty OSD disk
+  ansible.builtin.assert:
+    that:
+      - ceph_disk_serial.stdout | trim == ceph_osd_serial
+      - ceph_disk_signatures.stdout | trim == ''
+  when: (ceph_local_osds.stdout | from_json | length) == 0
+
+- name: Create one OSD on the dedicated disk
+  ansible.builtin.command:
+    argv: [ceph-volume, lvm, create, --data, "/dev/disk/by-id/virtio-{{ ceph_osd_serial }}"]
+  when: (ceph_local_osds.stdout | from_json | length) == 0

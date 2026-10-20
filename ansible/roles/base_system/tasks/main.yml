@@ -1,0 +1,21 @@
+---
+- name: Require a Debian-family virtualization host
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'Debian'
+    fail_msg: These host roles support Debian-family targets only.
+
+- name: Install host packages
+  ansible.builtin.import_tasks: packages.yml
+
+- name: Configure time synchronization
+  ansible.builtin.import_tasks: time_sync.yml
+
+- name: Configure persistent journal
+  ansible.builtin.import_tasks: journald.yml
+
+- name: Configure rsyslog
+  ansible.builtin.import_tasks: rsyslog.yml
+
+- name: Configure kernel settings
+  ansible.builtin.import_tasks: kernel_tuning.yml

@@ -1,0 +1,56 @@
+---
+- name: Read Ceph cluster status
+  ansible.builtin.command: ceph status --format json
+  register: ceph_status
+  changed_when: false
+
+- name: Require healthy quorum, OSDs, and placement groups
+  ansible.builtin.assert:
+    that:
+      - "(ceph_status.stdout | from_json).health.status == 'HEALTH_OK'"
+      - "(ceph_status.stdout | from_json).quorum_names | length == 3"
+      - "(ceph_status.stdout | from_json).osdmap.num_up_osds | int == 3"
+      - "(ceph_status.stdout | from_json).osdmap.num_in_osds | int == 3"
+      - "(ceph_status.stdout | from_json).pgmap.pgs_by_state | length == 1"
+      - "(ceph_status.stdout | from_json).pgmap.pgs_by_state[0].state_name == 'active+clean'"
+
+- name: Exercise an object write and verified read
+  block:
+    - name: Write unique probe content
+      ansible.builtin.copy:
+        dest: "{{ probe_input }}"
+        content: "Ceph RADOS object round-trip verification from the Ansible controller.\n"
+        mode: '0600'
+
+    - name: Put probe object
+      ansible.builtin.command: "rados -p lab-objects put {{ probe_object }} {{ probe_input }}"
+      changed_when: false
+
+    - name: Get probe object
+      ansible.builtin.command: "rados -p lab-objects get {{ probe_object }} {{ probe_output }}"
+      changed_when: false
+
+    - name: Compare written and read bytes
+      ansible.builtin.command: "cmp {{ probe_input }} {{ probe_output }}"
+      changed_when: false
+
+    - name: Report successful data validation
+      ansible.builtin.debug:
+        msg: RADOS put/get/cmp succeeded on lab-objects.
+  always:
+    - name: Remove probe object
+      ansible.builtin.command: "rados -p lab-objects rm {{ probe_object }}"
+      failed_when: false
+      changed_when: false
+
+    - name: Remove temporary probe files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ probe_input }}"
+        - "{{ probe_output }}"
+
+- name: Show status and health detail
+  ansible.builtin.debug:
+    msg: "{{ ceph_status.stdout | from_json }}"

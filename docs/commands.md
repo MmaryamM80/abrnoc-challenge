@@ -23,7 +23,7 @@ ansible-playbook -i ansible/inventory-local.ini ansible/site.yml --syntax-check
 ansible-playbook -i ansible/inventory-local.ini ansible/site.yml
 ```
 
-The host playbook now uses four roles: `host_baseline`, `virt_host`, `host_access`, and optional `host_monitoring`. Together they install KVM/libvirt and host utilities, create the `ansible` administration user with the operator's public key, validate `sshd` and nftables configuration, and start the services. They set persistent journald storage, conservative kernel settings, chrony, a restrictive inbound firewall, node exporter, and libvirt exporter. Prometheus and Alertmanager are local demonstration services for this one-host exercise.
+The host playbook has six ordered roles: `base_system`, `kvm`, `host_metrics`, `host_access`, `host_firewall`, and optional `local_monitoring`. The full mapping is in the [Ansible run guide](ansible-operations.md#host-role-layout). Together they install KVM/libvirt and host utilities, create the `ansible` administration user with the operator's public key, validate `sshd` and nftables configuration, and start the services. They set persistent journald storage, conservative kernel settings, chrony, a restrictive inbound firewall, node exporter, and libvirt exporter. Prometheus and Alertmanager are local demonstration services for this one-host exercise.
 
 ## 3. Verify access and service health
 
@@ -74,6 +74,8 @@ uv pip install --python .venv/bin/python -r requirements-controller.txt
 The role's read-only `sshd -t` and `sshd -T` checks now execute during Ansible check mode. The effective-policy assertion is deferred if a check-mode run predicts an SSH drop-in change; the real run verifies the resulting policy before the SSH handler reloads the service.
 
 ### Current Ceph guest and retired Gluster lab
+
+The current entry point is `ansible/site.yml`, with `ceph-bootstrap`, `ceph-ha`, and `ceph-verify` tags. The `ceph_guests` role manages KVM guests; `ceph_cluster` owns the Ceph configuration and verification tasks. The playbooks linked below now select stages from those roles.
 
 The Mac also ran the [Ceph host](../ansible/ceph-host.yml) and [Ceph node](../ansible/ceph-node.yml) playbooks against the supplied server and its nested `ceph1` guest. The guest has a dedicated 8 GiB OSD disk. The [verification playbook](../ansible/ceph-verify.yml) checks daemon state, placement groups, and a RADOS object write/read/byte comparison. After moving the Ceph image dependency out of the former Gluster directory, the [retirement playbook](../ansible/retire-gluster-lab.yml) removed only the known `ha1`/`ha2`/`ha3` lab resources. See the [Ceph report](ceph-lab.md) for commands and the limits of this single-node test.
 

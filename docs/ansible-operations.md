@@ -2,16 +2,20 @@
 
 The controller can be macOS, Ubuntu, or Linux Mint. Ansible runs on the controller and connects to the Debian KVM host over SSH. KVM, libvirt, Ceph, and the guest disks remain on the server. Run every command below from the repository root so Ansible loads `ansible.cfg`.
 
-The host playbook runs four roles in order:
+## Host role layout
+
+Without a Ceph tag, `ansible/site.yml` runs six host roles in order:
 
 | Role | Responsibility |
 | --- | --- |
-| `host_baseline` | Base packages, NTP, journald, sysctl, and nftables. |
-| `virt_host` | KVM/libvirt, node exporter, and libvirt exporter. |
-| `host_access` | Administrator account, authorized key, sudo, and validated SSH policy. |
-| `host_monitoring` | Optional local Prometheus and Alertmanager demonstration. |
+| `base_system` | Host packages, time sync, persistent logging, kernel settings |
+| `kvm` | KVM and libvirt packages and service |
+| `host_metrics` | Node and libvirt exporters |
+| `host_access` | Administrator account, public key, sudo, SSH policy |
+| `host_firewall` | nftables policy and service |
+| `local_monitoring` | Optional local Prometheus and Alertmanager |
 
-Defaults, tasks, handlers, and templates live with their owning role under `ansible/roles/`. The lab host playbook imports the same roles before creating its guests. `virt_host_demo_monitoring: false` skips the optional monitoring role.
+Each role owns its defaults, tasks, handlers, and templates under `ansible/roles/<role>/`. Related services use task files within a role; add a new role when it needs an independent lifecycle, configuration boundary, or reuse. Both host playbooks use the same ordered role list. `virt_host_demo_monitoring: false` skips local Prometheus and Alertmanager. The lab playbook runs the host roles before creating guests. `site.yml` also imports the Ceph playbooks, but their `never` tag keeps them out of a normal host run.
 
 ## Prepare the controller
 
@@ -35,11 +39,11 @@ If your macOS Python installation lacks `venv` or `pip`, `uv venv --python 3.12 
 
 Create `keys/admin.pub` locally with the administrator **public** key. It is ignored by Git. Keep its private counterpart outside this repository. Ansible uses your SSH agent or normal OpenSSH identities for connections; if you need a specific private key, pass `--private-key ~/.ssh/your_key` to each `ansible-playbook` command or configure it in `~/.ssh/config`. Never put private keys, passwords, or Ceph keyrings in this repository.
 
-The access role updates the matching key line and leaves other administrator keys intact. During a key rotation, verify login with the new key before deliberately removing the retired key from the host.
+The `host_access` role updates the matching key line and leaves other administrator keys intact. During a key rotation, verify login with the new key before deliberately removing the retired key from the host.
 
 For a manual GitHub Actions check or apply, see the [GitHub Actions run guide](github-actions.md). The Actions runner uses its own SSH key and receives the operator public key from an environment secret; `keys/admin.pub` stays local and ignored by Git.
 
-Set the host address and login account in `ansible/inventory.ini`. For first provisioning, that login account must already have sudo. The access role creates the `ansible` account. This inventory enables `virt_host_lab_network_enabled` because the supplied host already runs libvirt guests that need DNS and DHCP on `virbr0`; remove that setting for a host without this lab network. Confirm you can log in with the key and that the host fingerprint matches an independently verified value before accepting it. For the Ceph guest inventory, verify each guest fingerprint as well; its connections go through the KVM host using SSH ProxyJump. Host key checking stays enabled.
+Set the host address and login account in `ansible/inventory.ini`. For first provisioning, that login account must already have sudo. `host_access` creates the `ansible` account. This inventory enables `virt_host_lab_network_enabled` because the supplied host already runs libvirt guests that need DNS and DHCP on `virbr0`; remove that setting for a host without this lab network. Set Ceph guest addresses in `ansible/ceph-inventory.yml`. The root `ansible.cfg` loads both inventories, although a normal host run does not contact the guests. Confirm you can log in with the key and that the host fingerprint matches an independently verified value before accepting it. For the Ceph guest inventory, verify each guest fingerprint as well; its connections go through the KVM host using SSH ProxyJump. Host key checking stays enabled.
 
 ## Check and apply the host roles
 
@@ -57,17 +61,28 @@ Use the account you configured in the inventory for the SSH preflight. Read the 
 
 ## Ceph laboratory on this server
 
-The existing `ceph1` guest was created with `ansible/ceph-host.yml` and bootstrapped with `ansible/ceph-node.yml`. For the current three-guest laboratory, use these playbooks in order:
+Use `site.yml` for the Ceph laboratory too. The root `ansible.cfg` loads both host and guest inventories. Each tag selects only its named stage; a normal `site.yml` run still applies only the host roles.
+
+Ceph has two roles. `ceph_guests` creates and expands the KVM guest set; `ceph_cluster` bootstraps Ceph, joins the additional nodes, sets replication, and verifies cluster health. The small `ceph-*.yml` playbooks select the hosts and role stage; `site.yml` orders those playbooks behind explicit tags.
+
+| Stage | What it does |
+| --- | --- |
+| `ceph-bootstrap` | Create `ceph1`, then bootstrap its Ceph monitor, manager, OSD, and pools |
+| `ceph-ha` | Create `ceph2` and `ceph3`, then join them to the cluster |
+| `ceph-verify` | Check three healthy monitors and OSDs, then round-trip a RADOS object |
+
+On a fresh lab, run the stages in this order. On the supplied VM, bootstrap and HA have already been applied, so use the verify stage for a current health check.
 
 ```sh
-.venv/bin/ansible-playbook -i ansible/inventory.ini ansible/ceph-ha-host.yml --syntax-check
-.venv/bin/ansible-playbook -i ansible/ceph-inventory.yml ansible/ceph-ha-node.yml --syntax-check
-.venv/bin/ansible-playbook -i ansible/inventory.ini ansible/ceph-ha-host.yml
-.venv/bin/ansible-playbook -i ansible/ceph-inventory.yml ansible/ceph-ha-node.yml
+.venv/bin/ansible-playbook ansible/site.yml --syntax-check
+.venv/bin/ansible-playbook ansible/site.yml --list-tasks --tags ceph-bootstrap
+.venv/bin/ansible-playbook ansible/site.yml --tags ceph-bootstrap
+.venv/bin/ansible-playbook ansible/site.yml --tags ceph-ha
+.venv/bin/ansible-playbook ansible/site.yml --tags ceph-verify
 ssh -J ansible@104.194.148.88 ansible@192.168.122.124 'sudo ceph -s'
 ```
 
-`ceph-ha-host.yml` defines `ceph2` and `ceph3`, reserves their addresses, gives each a dedicated OSD disk, and enables guest autostart. It checks available RAM before creating missing guests. `ceph-ha-node.yml` joins each monitor to quorum, adds a standby manager and an OSD, then sets the two lab pools to `size 3` and `min_size 2`. It checks the disk serial and empty signatures before first OSD creation. Repeat both playbooks after applying; the target is zero changes and no failures. These are nested guests on one outer VM, so this test cannot establish host or rack failure tolerance.
+`ceph-ha-host.yml` defines `ceph2` and `ceph3`, reserves their addresses, gives each a dedicated OSD disk, and enables guest autostart. It checks available RAM before creating missing guests. `ceph-ha-node.yml` joins each monitor to quorum, adds a standby manager and an OSD, then sets the two lab pools to `size 3` and `min_size 2`. It checks the disk serial and empty signatures before first OSD creation. Repeat the `ceph-ha` stage after applying; the target is zero changes and no failures. These are nested guests on one outer VM, so this test cannot establish host or rack failure tolerance.
 
 To repeat the measured guest-failure drill, first confirm `sudo ceph -s` reports `HEALTH_OK`. The script writes 100 acknowledged objects, stops `ceph1`, reads them through `ceph2`, and restarts `ceph1` in its cleanup path. Run it with the same Python environment used for Ansible:
 

@@ -1,5 +1,0 @@
----
-virt_host_demo_monitoring: true
-virt_host_demo_packages:
-  - prometheus
-  - prometheus-alertmanager

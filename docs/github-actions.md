@@ -3,9 +3,9 @@
 The workflow in `.github/workflows/host.yml` checks the Ansible inventory and playbook syntax on every push to `main` and on pull requests. It does not contact the server for those events. Server access is available only through a manual **Run workflow** dispatch from `main`:
 
 - `check` connects with SSH and runs the host playbook in Ansible check mode.
-- `apply` runs the same check, applies the four host roles, repeats the playbook to require `changed=0`, and verifies libvirt.
+- `apply` runs the same check, applies the host playbook, repeats it to require `changed=0`, and verifies libvirt.
 
-The server job uses the GitHub environment named `server`. Configure its protection rules and secrets before using the manual job. The workflow does not create Ceph guests or run a failure drill; those operations remain in the [Ansible run guide](ansible-operations.md).
+The server job uses the GitHub environment named `server`. Configure its protection rules and secrets before using the manual job. It calls `site.yml` without a Ceph tag, so it applies only the host roles. Ceph stages are manual commands in the [Ansible run guide](ansible-operations.md).
 
 ## One-time setup
 
