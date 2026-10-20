@@ -38,8 +38,9 @@ jobs:
           .venv/bin/ansible-inventory --list > /dev/null
           .venv/bin/ansible-playbook ansible/site.yml --syntax-check
           .venv/bin/ansible-playbook ansible/lab-host.yml --syntax-check
-          .venv/bin/ansible-playbook ansible/ceph-ha-host.yml --syntax-check
-          .venv/bin/ansible-playbook -i ansible/ceph-inventory.yml ansible/ceph-ha-node.yml --syntax-check
+          .venv/bin/ansible-playbook -i ansible/lab-inventory.yml ansible/lab-cluster.yml --syntax-check
+          .venv/bin/ansible-playbook ansible/retire-gluster-lab.yml --syntax-check
+          .venv/bin/ansible-playbook ansible/retirement-verify.yml --syntax-check
       - name: Confirm local operator files are not tracked
         run: |
           test -z "$(git ls-files keys/admin.pub)"

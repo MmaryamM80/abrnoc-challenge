@@ -15,7 +15,7 @@
 - name: Check Debian base image in Ceph directory
   ansible.builtin.stat:
     path: "{{ ceph_lab_image }}"
-  register: ceph_base_image
+  register: ceph_base_image_stat
 
 - name: Fetch the official Debian 13 cloud image
   ansible.builtin.get_url:
@@ -23,7 +23,7 @@
     dest: "{{ ceph_lab_image }}"
     mode: '0644'
     timeout: 120
-  when: not ceph_base_image.stat.exists
+  when: not ceph_base_image_stat.stat.exists
 
 - name: Inspect DHCP reservations
   ansible.builtin.command: virsh -c qemu:///system net-dumpxml default

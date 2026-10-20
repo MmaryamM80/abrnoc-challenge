@@ -12,7 +12,7 @@ The supplied exercise asks for a partially implemented KVM host, operated throug
 ## What was done, step by step
 
 1. **Inspected the server.** It is a Debian 13 VM with 4 vCPUs, about 11 GiB RAM, one 300 GB virtual disk, and an accessible `/dev/kvm`. It has no physical RAID, NVMe device, or tenant VM.
-2. **Built the Ansible role.** The [role](ansible/roles/virt_host/tasks/main.yml) configures an administrator account with key-based SSH, disables root and password SSH login, installs a firewall and time synchronization, sets host logging and kernel options, and installs KVM/libvirt and host utilities. The role checks the effective SSH policy before reloading SSH.
+2. **Built the host automation.** The [host playbook](ansible/site.yml) runs focused roles for base system settings, KVM, metrics, access, firewall, and optional local monitoring. They configure an administrator account with key-based SSH, disable root and password SSH login, install a firewall and time synchronization, set host logging and kernel options, and install KVM/libvirt and host utilities. The access role checks the effective SSH policy before reloading SSH.
 3. **Added monitoring.** Node and libvirt exporters feed a local Prometheus instance. Nine [alert rules](monitoring/virt-host-alerts.yml) cover disk latency, RAID degradation, load, memory pressure, packet drops, exporter/libvirt failures, and failed VMs. Alertmanager routes critical alerts to `page` and warning alerts to the documented business-hours policy.
 4. **Ran Ansible from the Mac.** An isolated Python 3.12 environment with `ansible-core==2.19.3` was used for syntax checking, a check-mode diff, a real apply, and a second real run. The [check](evidence/mac-check-run.txt), [apply](evidence/mac-apply-run.txt), and [second-run output](evidence/mac-second-run.txt) are saved. The second run ended with `changed=0`, `unreachable=0`, and `failed=0`.
 5. **Checked the live host.** All eight relevant services were active. `virt-host-validate qemu` passed the KVM device and cgroup checks; it warned that IOMMU and secure guest support were unavailable or unknown. See [live validation](evidence/kvm-host-validation.txt) and [monitoring health](evidence/mac-health.md).
@@ -27,7 +27,7 @@ The supplied exercise asks for a partially implemented KVM host, operated throug
 
 ## What the evidence does and does not prove
 
-The Ansible role was applied to the supplied VM, and its repeat run was idempotent. The host can access KVM, libvirt is running, both exporters are being scraped, and two synthetic critical alerts reached Alertmanager.
+The host automation was applied to the supplied VM, and its recorded repeat run was idempotent. Its tasks are now organized into focused roles; the recorded run predates that layout change. The host can access KVM, libvirt is running, both exporters are being scraped, and two synthetic critical alerts reached Alertmanager.
 
 The server has one virtual disk and no physical RAID, so storage hardware failures were not induced. The historical three-guest Gluster drill demonstrated guest-level replication and HTTP failover; its measurement does **not** prove survival of the supplied server or its underlying hypervisor. Those guests are now removed. The current Ceph lab has three replicas, but they share the same outer VM. Its guest-failure sample cannot prove cross-host tenant VM RPO/RTO. The Debian Ceph manager also logged a crash in its always-on `volumes` module after a restart; the manager remained active, but the package issue needs a lasting fix. The 300-VM incident and independently hosted HA design remain written plans. The local monitoring stack shares the host's failure domain. Alertmanager has no configured email, webhook, or paging destination, so the `page` receiver **does not deliver a notification to a person**. These limits and the recommended next steps are detailed in the [acceptance matrix](docs/acceptance-matrix.md).
 
@@ -36,7 +36,7 @@ The PDF permits Ceph, LINSTOR/DRBD, or another justified HA storage solution; it
 ## Repository and handoff
 
 - [README](README.md): setup, Mac run procedure, alert policy, and operational links.
-- [Ansible role](ansible/roles/virt_host/tasks/main.yml): host configuration.
+- [Host playbook](ansible/site.yml) and [role layout](docs/ansible-operations.md#host-role-layout): host configuration.
 - [Monitoring rules](monitoring/virt-host-alerts.yml): nine alerts.
 - [Acceptance matrix](docs/acceptance-matrix.md): requirement-by-requirement status and tradeoffs.
 - [Task checklist](TASK_CHECKLIST.md): checked and open PDF and follow-up items.

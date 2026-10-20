@@ -1,6 +1,6 @@
 # Proposed HA architecture for 300 VMs
 
-This is a production design, not a claim that the supplied single VM is highly available. The supplied VM has one virtual disk and no independent failure domain. A separate [three-guest KVM laboratory](kvm-ha-lab.md) exercises guest-level replication and failover within that one VM.
+This is a production design, not a claim that the supplied single VM is highly available. The supplied VM has one virtual disk and no independent failure domain. The current [three-guest Ceph laboratory](ceph-lab.md) exercises quorum, replication, and one guest-failure sample within that VM. An earlier [Gluster failover laboratory](kvm-ha-lab.md) was measured and retired.
 
 ```mermaid
 flowchart LR

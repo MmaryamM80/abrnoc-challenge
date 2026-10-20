@@ -6,7 +6,7 @@ The [acceptance matrix](docs/acceptance-matrix.md) separates PDF requirements fr
 
 ## Host automation
 
-- [x] Create an Ansible role for a fresh Debian KVM host: administrator account, SSH hardening, firewall, NTP, kernel settings, persistent logs, required packages, KVM, and libvirt. [Role](ansible/roles/virt_host/tasks/main.yml) · [validation](evidence/validation-summary.md)
+- [x] Automate a fresh Debian KVM host: administrator account, SSH hardening, firewall, NTP, kernel settings, persistent logs, required packages, KVM, and libvirt. [Host playbook and roles](ansible/site.yml) · [role layout](docs/ansible-operations.md#host-role-layout) · [validation](evidence/validation-summary.md)
 - [x] Run the host playbook from the Mac with a syntax check, check-mode diff, real apply, and a second real run. The second run reported `changed=0`, `unreachable=0`, and `failed=0`. [Mac run evidence](evidence/mac-second-run.txt)
 - [x] Verify KVM and service state on the server. [Host validation](evidence/kvm-host-validation.txt)
 

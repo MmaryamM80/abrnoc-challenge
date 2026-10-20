@@ -1,12 +1,12 @@
 # Historical KVM high-availability laboratory (retired)
 
-This page preserves the October 20, 2026 Gluster failure drill and its measured results. The `ha1`, `ha2`, and `ha3` guests, their DHCP reservations, and their known disk files were [removed](../evidence/gluster-retirement.txt) after the user requested Ceph on the server. The [current laboratory](ceph-lab.md) is a single Ceph guest. Reproducing the commands below would recreate the retired Gluster lab and compete with Ceph for memory.
+This page preserves the October 20, 2026 Gluster failure drill and its measured results. The `ha1`, `ha2`, and `ha3` guests, their DHCP reservations, and their known disk files were [removed](../evidence/gluster-retirement.txt) after the user requested Ceph on the server. The [current laboratory](ceph-lab.md) has three Ceph guests on the same outer VM. Reproducing the commands below would recreate the retired Gluster lab and compete with Ceph for memory.
 
 ## Scope and failure domains
 
 The supplied machine is one Debian virtual server with nested KVM access. This historical laboratory created three **KVM guest nodes inside that one server**. It demonstrated replication, service failover, and a measured *guest* failure. It could not survive failure of the supplied server, its virtual disk, its upstream network, or its underlying hypervisor. The production multi-host RPO/RTO targets in [the architecture](architecture.md) remain separate acceptance criteria.
 
-The task PDF permits Ceph, LINSTOR/DRBD, **or another justified solution**; it does not require GlusterFS. The production design in this repository uses Ceph RBD. GlusterFS was used only for this measured guest-failure laboratory. The host's roughly 12 GiB RAM did not support three adequately sized Ceph guests alongside this lab. A separate [single-node Ceph functional test](ceph-lab.md) now runs on the server. Ceph **failover RPO/RTO remains unmeasured**; that requires independent, adequately provisioned hosts, separate OSD devices, quorum, fencing, and a fresh failure drill.
+The task PDF permits Ceph, LINSTOR/DRBD, **or another justified solution**; it does not require GlusterFS. The production design in this repository uses Ceph RBD. GlusterFS was used only for this measured guest-failure laboratory. The host's roughly 12 GiB RAM did not support the Gluster and Ceph labs together. The [three-guest Ceph lab](ceph-lab.md) now runs on the server. It has one acknowledged-object guest-failure sample, but cross-host tenant VM RPO/RTO remains unmeasured; that requires independent, adequately provisioned hosts, separate OSD devices, quorum, fencing, and a fresh failure drill.
 
 | Component | Lab configuration |
 | --- | --- |

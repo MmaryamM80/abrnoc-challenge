@@ -75,9 +75,9 @@ The role's read-only `sshd -t` and `sshd -T` checks now execute during Ansible c
 
 ### Current Ceph guest and retired Gluster lab
 
-The current entry point is `ansible/site.yml`, with `ceph-bootstrap`, `ceph-ha`, and `ceph-verify` tags. The `ceph_guests` role manages KVM guests; `ceph_cluster` owns the Ceph configuration and verification tasks. The playbooks linked below now select stages from those roles.
+The current entry point is [the site playbook](../ansible/site.yml), with `ceph-bootstrap`, `ceph-ha`, and `ceph-verify` tags. The `ceph_guests` role manages KVM guests; `ceph_cluster` owns the Ceph configuration and verification tasks.
 
-The Mac also ran the [Ceph host](../ansible/ceph-host.yml) and [Ceph node](../ansible/ceph-node.yml) playbooks against the supplied server and its nested `ceph1` guest. The guest has a dedicated 8 GiB OSD disk. The [verification playbook](../ansible/ceph-verify.yml) checks daemon state, placement groups, and a RADOS object write/read/byte comparison. After moving the Ceph image dependency out of the former Gluster directory, the [retirement playbook](../ansible/retire-gluster-lab.yml) removed only the known `ha1`/`ha2`/`ha3` lab resources. See the [Ceph report](ceph-lab.md) for commands and the limits of this single-node test.
+The Mac ran the Ceph host and guest stages against the supplied server and its nested `ceph1` guest. The guest has a dedicated 8 GiB OSD disk. The `ceph-verify` stage checks daemon state, placement groups, and a RADOS object write/read/byte comparison. After moving the Ceph image dependency out of the former Gluster directory, the [retirement playbook](../ansible/retire-gluster-lab.yml) removed only the known `ha1`/`ha2`/`ha3` lab resources. See the [Ceph report](ceph-lab.md) for commands and the limits of this nested-guest test.
 
 ## 5. Prove alert flow without harming storage
 

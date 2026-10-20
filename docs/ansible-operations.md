@@ -15,7 +15,7 @@ Without a Ceph tag, `ansible/site.yml` runs six host roles in order:
 | `host_firewall` | nftables policy and service |
 | `local_monitoring` | Optional local Prometheus and Alertmanager |
 
-Each role owns its defaults, tasks, handlers, and templates under `ansible/roles/<role>/`. Related services use task files within a role; add a new role when it needs an independent lifecycle, configuration boundary, or reuse. Both host playbooks use the same ordered role list. `virt_host_demo_monitoring: false` skips local Prometheus and Alertmanager. The lab playbook runs the host roles before creating guests. `site.yml` also imports the Ceph playbooks, but their `never` tag keeps them out of a normal host run.
+Each role owns its defaults, tasks, handlers, and templates under `ansible/roles/<role>/`. Related services use task files within a role; add a new role when it needs an independent lifecycle, configuration boundary, or reuse. Both host playbooks use the same ordered role list. `virt_host_demo_monitoring: false` skips local Prometheus and Alertmanager. The lab playbook runs the host roles before creating guests. `site.yml` defines the Ceph stages after the host play; their `never` tag keeps them out of a normal host run.
 
 ## Prepare the controller
 
@@ -63,7 +63,7 @@ Use the account you configured in the inventory for the SSH preflight. Read the 
 
 Use `site.yml` for the Ceph laboratory too. The root `ansible.cfg` loads both host and guest inventories. Each tag selects only its named stage; a normal `site.yml` run still applies only the host roles.
 
-Ceph has two roles. `ceph_guests` creates and expands the KVM guest set; `ceph_cluster` bootstraps Ceph, joins the additional nodes, sets replication, and verifies cluster health. The small `ceph-*.yml` playbooks select the hosts and role stage; `site.yml` orders those playbooks behind explicit tags.
+Ceph has two roles. `ceph_guests` creates and expands the KVM guest set; `ceph_cluster` bootstraps Ceph, joins the additional nodes, sets replication, and verifies cluster health. Role defaults hold lab-specific paths, addresses, and probe names. `site.yml` selects the hosts and orders the stages behind explicit tags; the implementation stays in the roles.
 
 | Stage | What it does |
 | --- | --- |
@@ -82,7 +82,7 @@ On a fresh lab, run the stages in this order. On the supplied VM, bootstrap and 
 ssh -J ansible@104.194.148.88 ansible@192.168.122.124 'sudo ceph -s'
 ```
 
-`ceph-ha-host.yml` defines `ceph2` and `ceph3`, reserves their addresses, gives each a dedicated OSD disk, and enables guest autostart. It checks available RAM before creating missing guests. `ceph-ha-node.yml` joins each monitor to quorum, adds a standby manager and an OSD, then sets the two lab pools to `size 3` and `min_size 2`. It checks the disk serial and empty signatures before first OSD creation. Repeat the `ceph-ha` stage after applying; the target is zero changes and no failures. These are nested guests on one outer VM, so this test cannot establish host or rack failure tolerance.
+The `ceph_guests` expansion stage defines `ceph2` and `ceph3`, reserves their addresses, gives each a dedicated OSD disk, and enables guest autostart. It checks available RAM before creating missing guests. The `ceph_cluster` join and replication stages add each monitor to quorum, add standby managers and OSDs, then set the two lab pools to `size 3` and `min_size 2`. They check disk serials and empty signatures before first OSD creation. Repeat the `ceph-ha` stage after applying; the target is zero changes and no failures. These are nested guests on one outer VM, so this test cannot establish host or rack failure tolerance.
 
 To repeat the measured guest-failure drill, first confirm `sudo ceph -s` reports `HEALTH_OK`. The script writes 100 acknowledged objects, stops `ceph1`, reads them through `ceph2`, and restarts `ceph1` in its cleanup path. Run it with the same Python environment used for Ansible:
 

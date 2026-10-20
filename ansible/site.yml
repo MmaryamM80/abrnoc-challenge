@@ -12,19 +12,81 @@
     - role: local_monitoring
       when: virt_host_demo_monitoring | default(true) | bool
 
-# Ceph runs on KVM guests and has a separate lifecycle from the host roles.
-# Explicit tags prevent a normal host apply from creating or modifying guests.
-- ansible.builtin.import_playbook: ceph-host.yml
+# Ceph has a separate lifecycle. Only an explicit stage tag touches its guests.
+- name: Create the initial Ceph KVM guest
+  hosts: virt_hosts
+  become: true
+  gather_facts: true
   tags: [never, ceph-bootstrap]
+  tasks:
+    - name: Bootstrap the Ceph KVM guest
+      ansible.builtin.import_role:
+        name: ceph_guests
+        tasks_from: bootstrap
 
-- ansible.builtin.import_playbook: ceph-node.yml
+- name: Bootstrap Ceph on the initial guest
+  hosts: ceph_lab
+  become: true
+  gather_facts: true
   tags: [never, ceph-bootstrap]
+  tasks:
+    - name: Bootstrap the Ceph cluster
+      ansible.builtin.import_role:
+        name: ceph_cluster
+        tasks_from: bootstrap
 
-- ansible.builtin.import_playbook: ceph-ha-host.yml
+- name: Add two Ceph KVM guests
+  hosts: virt_hosts
+  become: true
+  gather_facts: true
   tags: [never, ceph-ha]
+  tasks:
+    - name: Expand the Ceph KVM guest set
+      ansible.builtin.import_role:
+        name: ceph_guests
+        tasks_from: expand
 
-- ansible.builtin.import_playbook: ceph-ha-node.yml
+- name: Export cluster bootstrap material
+  hosts: ceph1
+  become: true
+  gather_facts: false
   tags: [never, ceph-ha]
+  tasks:
+    - name: Export Ceph credentials and configuration
+      ansible.builtin.import_role:
+        name: ceph_cluster
+        tasks_from: export
 
-- ansible.builtin.import_playbook: ceph-verify.yml
+- name: Join each new guest without losing monitor quorum
+  hosts: ceph_ha_new
+  serial: 1
+  become: true
+  gather_facts: true
+  tags: [never, ceph-ha]
+  tasks:
+    - name: Join the Ceph cluster
+      ansible.builtin.import_role:
+        name: ceph_cluster
+        tasks_from: join
+
+- name: Set the three-replica pool policy
+  hosts: ceph1
+  become: true
+  gather_facts: true
+  tags: [never, ceph-ha]
+  tasks:
+    - name: Configure Ceph pool replication
+      ansible.builtin.import_role:
+        name: ceph_cluster
+        tasks_from: replicate
+
+- name: Verify the three-guest Ceph laboratory
+  hosts: ceph_lab
+  become: true
+  gather_facts: false
   tags: [never, ceph-verify]
+  tasks:
+    - name: Verify Ceph health and object access
+      ansible.builtin.import_role:
+        name: ceph_cluster
+        tasks_from: verify
