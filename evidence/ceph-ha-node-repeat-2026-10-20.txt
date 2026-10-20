@@ -1,0 +1,244 @@
+
+PLAY [Export bootstrap material from the existing Ceph monitor] ****************
+
+TASK [Read persistent Ceph cluster identity] ***********************************
+[WARNING]: Host 'ceph1' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [ceph1]
+
+TASK [Export monitor authentication] *******************************************
+ok: [ceph1]
+
+TASK [Read bootstrap files for new guests] *************************************
+ok: [ceph1] => (item=(censored due to no_log))
+ok: [ceph1] => (item=(censored due to no_log))
+ok: [ceph1] => (item=(censored due to no_log))
+
+PLAY [Join each new guest to Ceph without losing monitor quorum] ***************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'ceph2' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [ceph2]
+
+TASK [Verify the expected guest address and dedicated disk] ********************
+ok: [ceph2] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Install Ceph packages] ***************************************************
+ok: [ceph2]
+
+TASK [Install acknowledged-object recovery probe] ******************************
+ok: [ceph2]
+
+TASK [Create Ceph configuration and bootstrap directories] *********************
+ok: [ceph2] => (item=/etc/ceph)
+ok: [ceph2] => (item=/var/lib/ceph/bootstrap-osd)
+ok: [ceph2] => (item=/var/lib/ceph/mon/ceph-ceph2)
+ok: [ceph2] => (item=/var/lib/ceph/mgr/ceph-ceph2)
+
+TASK [Render replicated Ceph configuration] ************************************
+ok: [ceph2]
+
+TASK [Copy existing secret keyrings] *******************************************
+ok: [ceph2] => (item=(censored due to no_log))
+ok: [ceph2] => (item=(censored due to no_log))
+ok: [ceph2] => (item=(censored due to no_log))
+
+TASK [Retrieve the current monitor map from the live cluster] ******************
+ok: [ceph2]
+
+TASK [Check whether the monitor database exists] *******************************
+ok: [ceph2]
+
+TASK [Initialize the new monitor from the live cluster map] ********************
+skipping: [ceph2]
+
+TASK [Start and enable the new monitor] ****************************************
+ok: [ceph2]
+
+TASK [Wait for new monitor to enter quorum] ************************************
+ok: [ceph2]
+
+TASK [Detect affected Debian manager version] **********************************
+ok: [ceph2]
+
+TASK [Replace bcrypt import in affected Debian manager] ************************
+ok: [ceph2]
+
+TASK [Replace bcrypt salt generation in affected Debian manager] ***************
+ok: [ceph2]
+
+TASK [Replace bcrypt password hashing in affected Debian manager] **************
+ok: [ceph2]
+
+TASK [Create manager authentication] *******************************************
+ok: [ceph2]
+
+TASK [Protect manager keyring] *************************************************
+ok: [ceph2]
+
+TASK [Start and enable standby manager] ****************************************
+ok: [ceph2]
+
+TASK [Restart manager after compatibility changes] *****************************
+
+TASK [Inspect local OSD volumes] ***********************************************
+ok: [ceph2]
+
+TASK [Read dedicated disk serial before provisioning] **************************
+skipping: [ceph2]
+
+TASK [Check dedicated disk for pre-existing signatures] ************************
+skipping: [ceph2]
+
+TASK [Require the intended empty OSD disk] *************************************
+skipping: [ceph2]
+
+TASK [Create one OSD on the dedicated disk] ************************************
+skipping: [ceph2]
+
+PLAY [Join each new guest to Ceph without losing monitor quorum] ***************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'ceph3' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [ceph3]
+
+TASK [Verify the expected guest address and dedicated disk] ********************
+ok: [ceph3] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Install Ceph packages] ***************************************************
+ok: [ceph3]
+
+TASK [Install acknowledged-object recovery probe] ******************************
+ok: [ceph3]
+
+TASK [Create Ceph configuration and bootstrap directories] *********************
+ok: [ceph3] => (item=/etc/ceph)
+ok: [ceph3] => (item=/var/lib/ceph/bootstrap-osd)
+ok: [ceph3] => (item=/var/lib/ceph/mon/ceph-ceph3)
+ok: [ceph3] => (item=/var/lib/ceph/mgr/ceph-ceph3)
+
+TASK [Render replicated Ceph configuration] ************************************
+ok: [ceph3]
+
+TASK [Copy existing secret keyrings] *******************************************
+ok: [ceph3] => (item=(censored due to no_log))
+ok: [ceph3] => (item=(censored due to no_log))
+ok: [ceph3] => (item=(censored due to no_log))
+
+TASK [Retrieve the current monitor map from the live cluster] ******************
+ok: [ceph3]
+
+TASK [Check whether the monitor database exists] *******************************
+ok: [ceph3]
+
+TASK [Initialize the new monitor from the live cluster map] ********************
+skipping: [ceph3]
+
+TASK [Start and enable the new monitor] ****************************************
+ok: [ceph3]
+
+TASK [Wait for new monitor to enter quorum] ************************************
+ok: [ceph3]
+
+TASK [Detect affected Debian manager version] **********************************
+ok: [ceph3]
+
+TASK [Replace bcrypt import in affected Debian manager] ************************
+ok: [ceph3]
+
+TASK [Replace bcrypt salt generation in affected Debian manager] ***************
+ok: [ceph3]
+
+TASK [Replace bcrypt password hashing in affected Debian manager] **************
+ok: [ceph3]
+
+TASK [Create manager authentication] *******************************************
+ok: [ceph3]
+
+TASK [Protect manager keyring] *************************************************
+ok: [ceph3]
+
+TASK [Start and enable standby manager] ****************************************
+ok: [ceph3]
+
+TASK [Restart manager after compatibility changes] *****************************
+
+TASK [Inspect local OSD volumes] ***********************************************
+ok: [ceph3]
+
+TASK [Read dedicated disk serial before provisioning] **************************
+skipping: [ceph3]
+
+TASK [Check dedicated disk for pre-existing signatures] ************************
+skipping: [ceph3]
+
+TASK [Require the intended empty OSD disk] *************************************
+skipping: [ceph3]
+
+TASK [Create one OSD on the dedicated disk] ************************************
+skipping: [ceph3]
+
+PLAY [Set three-replica Ceph policy and verify all guests] *********************
+
+TASK [Gathering Facts] *********************************************************
+ok: [ceph1]
+
+TASK [Render replicated Ceph configuration on original monitor] ****************
+ok: [ceph1]
+
+TASK [Wait for three monitor quorum members] ***********************************
+ok: [ceph1]
+
+TASK [Wait for three up OSDs] **************************************************
+ok: [ceph1]
+
+TASK [Read current pool replication sizes] *************************************
+ok: [ceph1] => (item=.mgr)
+ok: [ceph1] => (item=lab-objects)
+
+TASK [Require three replicas for both pools] ***********************************
+skipping: [ceph1] => (item={'changed': False, 'stdout': '\n{"pool":".mgr","pool_id":2,"size":3}', 'stderr': '', 'rc': 0, 'cmd': ['ceph', 'osd', 'pool', 'get', '.mgr', 'size', '--format', 'json'], 'start': '2026-10-20 16:53:18.973797', 'end': '2026-10-20 16:53:19.444643', 'delta': '0:00:00.470846', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'ceph osd pool get .mgr size --format json', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['', '{"pool":".mgr","pool_id":2,"size":3}'], 'stderr_lines': [], 'failed': False, 'item': '.mgr', 'ansible_loop_var': 'item'})
+skipping: [ceph1] => (item={'changed': False, 'stdout': '\n{"pool":"lab-objects","pool_id":1,"size":3}', 'stderr': '', 'rc': 0, 'cmd': ['ceph', 'osd', 'pool', 'get', 'lab-objects', 'size', '--format', 'json'], 'start': '2026-10-20 16:53:23.057138', 'end': '2026-10-20 16:53:23.564355', 'delta': '0:00:00.507217', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'ceph osd pool get lab-objects size --format json', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['', '{"pool":"lab-objects","pool_id":1,"size":3}'], 'stderr_lines': [], 'failed': False, 'item': 'lab-objects', 'ansible_loop_var': 'item'})
+skipping: [ceph1]
+
+TASK [Read current pool minimum sizes] *****************************************
+ok: [ceph1] => (item=.mgr)
+ok: [ceph1] => (item=lab-objects)
+
+TASK [Require two replicas before writes are acknowledged] *********************
+skipping: [ceph1] => (item={'changed': False, 'stdout': '\n{"pool":".mgr","pool_id":2,"min_size":2}', 'stderr': '', 'rc': 0, 'cmd': ['ceph', 'osd', 'pool', 'get', '.mgr', 'min_size', '--format', 'json'], 'start': '2026-10-20 16:53:26.878936', 'end': '2026-10-20 16:53:27.329417', 'delta': '0:00:00.450481', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'ceph osd pool get .mgr min_size --format json', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['', '{"pool":".mgr","pool_id":2,"min_size":2}'], 'stderr_lines': [], 'failed': False, 'item': '.mgr', 'ansible_loop_var': 'item'})
+skipping: [ceph1] => (item={'changed': False, 'stdout': '\n{"pool":"lab-objects","pool_id":1,"min_size":2}', 'stderr': '', 'rc': 0, 'cmd': ['ceph', 'osd', 'pool', 'get', 'lab-objects', 'min_size', '--format', 'json'], 'start': '2026-10-20 16:53:30.693957', 'end': '2026-10-20 16:53:31.159019', 'delta': '0:00:00.465062', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'ceph osd pool get lab-objects min_size --format json', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['', '{"pool":"lab-objects","pool_id":1,"min_size":2}'], 'stderr_lines': [], 'failed': False, 'item': 'lab-objects', 'ansible_loop_var': 'item'})
+skipping: [ceph1]
+
+TASK [Read cluster default replication size] ***********************************
+ok: [ceph1]
+
+TASK [Set default pool replication size] ***************************************
+skipping: [ceph1]
+
+TASK [Read cluster default minimum replication size] ***************************
+ok: [ceph1]
+
+TASK [Set default pool write quorum] *******************************************
+skipping: [ceph1]
+
+TASK [Wait for all placement groups to become clean] ***************************
+ok: [ceph1]
+
+TASK [Show cluster summary] ****************************************************
+ok: [ceph1] => {
+    "ceph_final_status.stdout_lines": [
+        "",
+        "{\"fsid\":\"41f53604-ceda-4bb6-ad8e-3dd1f015bd85\",\"health\":{\"status\":\"HEALTH_WARN\",\"checks\":{\"RECENT_MGR_MODULE_CRASH\":{\"severity\":\"HEALTH_WARN\",\"summary\":{\"message\":\"1 mgr modules have recently crashed\",\"count\":1},\"muted\":false}},\"mutes\":[]},\"election_epoch\":16,\"quorum\":[0,1,2],\"quorum_names\":[\"ceph1\",\"ceph2\",\"ceph3\"],\"quorum_age\":1263,\"monmap\":{\"epoch\":4,\"min_mon_release_name\":\"reef\",\"num_mons\":3},\"osdmap\":{\"epoch\":46,\"num_osds\":3,\"num_up_osds\":3,\"osd_up_since\":1792514049,\"num_in_osds\":3,\"osd_in_since\":1792514029,\"num_remapped_pgs\":0},\"pgmap\":{\"pgs_by_state\":[{\"state_name\":\"active+clean\",\"count\":33}],\"num_pgs\":33,\"num_pools\":2,\"num_objects\":3,\"data_bytes\":459311,\"bytes_used\":85561344,\"bytes_avail\":25671659520,\"bytes_total\":25757220864},\"fsmap\":{\"epoch\":1,\"by_rank\":[],\"up:standby\":0},\"mgrmap\":{\"available\":true,\"num_standbys\":2,\"modules\":[\"iostat\",\"nfs\"],\"services\":{}},\"servicemap\":{\"epoch\":34,\"modified\":\"2026-10-20T16:50:44.273059+0000\",\"services\":{}},\"progress_events\":{}}"
+    ]
+}
+
+PLAY RECAP *********************************************************************
+ceph1                      : ok=13   changed=0    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0
+ceph2                      : ok=19   changed=0    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0
+ceph3                      : ok=19   changed=0    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0

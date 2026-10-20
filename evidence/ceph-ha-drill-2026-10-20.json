@@ -1,0 +1,48 @@
+{
+  "controller": "Mac via SSH and cx",
+  "created_utc": "2026-10-20T17:02:00.102831+00:00",
+  "during_failure_health": "HEALTH_WARN",
+  "during_failure_verify": {
+    "checked": 100,
+    "mismatched": [],
+    "missing": [],
+    "mode": "verify",
+    "ok": true,
+    "payload_sha256": "aef166aafa72a22b0fa2fb2a6a8ce6bad2bcb18a7ea47c61825ce91b198e850a",
+    "sample_id": "3a43753e6d1a42ae8a458df93ceb7a0a",
+    "timestamp_utc": "2026-10-20T17:02:45.405740+00:00"
+  },
+  "failed_guest": "ceph1",
+  "failure_command_duration_seconds": 1.869,
+  "failure_command_finished_utc": "2026-10-20T17:02:13.350726+00:00",
+  "failure_command_started_utc": "2026-10-20T17:02:11.482290+00:00",
+  "first_success_seconds": 27.413,
+  "guest_restarted_utc": "2026-10-20T17:02:49.593029+00:00",
+  "pre_failure_health": "HEALTH_OK",
+  "pre_failure_verify": {
+    "checked": 100,
+    "mismatched": [],
+    "missing": [],
+    "mode": "verify",
+    "ok": true,
+    "payload_sha256": "aef166aafa72a22b0fa2fb2a6a8ce6bad2bcb18a7ea47c61825ce91b198e850a",
+    "sample_id": "3a43753e6d1a42ae8a458df93ceb7a0a",
+    "timestamp_utc": "2026-10-20T17:02:15.451757+00:00"
+  },
+  "probe_attempts": [
+    {
+      "elapsed_seconds": 27.413,
+      "ok": true
+    }
+  ],
+  "probe_interval_seconds": 1,
+  "scope": "nested KVM guest failure on one outer VM",
+  "seed": {
+    "acknowledged": 100,
+    "mode": "seed",
+    "payload_sha256": "aef166aafa72a22b0fa2fb2a6a8ce6bad2bcb18a7ea47c61825ce91b198e850a",
+    "sample_id": "3a43753e6d1a42ae8a458df93ceb7a0a",
+    "timestamp_utc": "2026-10-20T17:02:12.966131+00:00"
+  },
+  "surviving_guest": "ceph2"
+}

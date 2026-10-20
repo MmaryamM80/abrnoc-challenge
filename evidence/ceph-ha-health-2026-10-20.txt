@@ -1,0 +1,31 @@
+Tue Oct 20 17:15:08 UTC 2026
+  cluster:
+    id:     41f53604-ceda-4bb6-ad8e-3dd1f015bd85
+    health: HEALTH_OK
+
+  services:
+    mon: 3 daemons, quorum ceph1,ceph2,ceph3 (age 11m)
+    mgr: ceph2(active, since 12m), standbys: ceph3, ceph1
+    osd: 3 osds: 3 up (since 11m), 3 in (since 41m)
+
+  data:
+    pools:   2 pools, 33 pgs
+    objects: 103 objects, 452 KiB
+    usage:   488 MiB used, 24 GiB / 24 GiB avail
+    pgs:     33 active+clean
+
+size: 3
+min_size: 2
+ID  CLASS  WEIGHT   TYPE NAME       STATUS  REWEIGHT  PRI-AFF
+-1         0.02339  root default
+-3         0.00780      host ceph1
+ 0    hdd  0.00780          osd.0       up   1.00000  1.00000
+-5         0.00780      host ceph2
+ 1    hdd  0.00780          osd.1       up   1.00000  1.00000
+-7         0.00780      host ceph3
+ 2    hdd  0.00780          osd.2       up   1.00000  1.00000
+ Id   Name    State
+-----------------------
+ 12   ceph2   running
+ 13   ceph3   running
+ 14   ceph1   running

@@ -1,0 +1,95 @@
+---
+- name: Retire the three isolated Gluster test guests after Ceph migration
+  hosts: virt_hosts
+  become: true
+  gather_facts: false
+  vars:
+    old_lab_dir: /var/lib/libvirt/images/abrnoc-ha-lab
+    ceph_lab_dir: /var/lib/libvirt/images/abrnoc-ceph-lab
+    old_nodes:
+      - { name: ha1, mac: '52:54:00:ab:10:21', ip: '192.168.122.121' }
+      - { name: ha2, mac: '52:54:00:ab:10:22', ip: '192.168.122.122' }
+      - { name: ha3, mac: '52:54:00:ab:10:23', ip: '192.168.122.123' }
+  tasks:
+    - name: Check Ceph guest state
+      ansible.builtin.command: virsh -c qemu:///system domstate ceph1
+      register: ceph_domain_state
+      changed_when: false
+
+    - name: Inspect Ceph boot disk backing image
+      ansible.builtin.command:
+        argv: [qemu-img, info, -U, --output=json, /var/lib/libvirt/images/abrnoc-ceph-lab/ceph1.qcow2]
+      register: ceph_disk_info
+      changed_when: false
+
+    - name: Require running Ceph guest and independent base image
+      ansible.builtin.assert:
+        that:
+          - ceph_domain_state.stdout | trim == 'running'
+          - (ceph_disk_info.stdout | from_json)['full-backing-filename'] == ceph_lab_dir + '/debian-13-genericcloud-amd64.qcow2'
+
+    - name: Inspect former Gluster guest states
+      ansible.builtin.command: "virsh -c qemu:///system domstate {{ item.name }}"
+      loop: "{{ old_nodes }}"
+      register: old_domain_states
+      failed_when: false
+      changed_when: false
+
+    - name: Stop former Gluster guests
+      ansible.builtin.command: "virsh -c qemu:///system destroy {{ item.item.name }}"
+      loop: "{{ old_domain_states.results }}"
+      when: item.rc == 0 and item.stdout | trim == 'running'
+
+    - name: Undefine former Gluster guests
+      ansible.builtin.command: "virsh -c qemu:///system undefine {{ item.item.name }}"
+      loop: "{{ old_domain_states.results }}"
+      when: item.rc == 0
+
+    - name: Inspect lab DHCP reservations
+      ansible.builtin.command: virsh -c qemu:///system net-dumpxml default
+      register: lab_network_xml
+      changed_when: false
+
+    - name: Remove former Gluster guest DHCP reservations
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - -c
+          - qemu:///system
+          - net-update
+          - default
+          - delete
+          - ip-dhcp-host
+          - "<host mac='{{ item.mac }}' name='{{ item.name }}' ip='{{ item.ip }}'/>"
+          - --live
+          - --config
+      loop: "{{ old_nodes }}"
+      when: item.mac in lab_network_xml.stdout
+
+    - name: Remove only known former Gluster lab files
+      ansible.builtin.file:
+        path: "{{ old_lab_dir }}/{{ item }}"
+        state: absent
+      loop:
+        - debian-13-genericcloud-amd64.qcow2
+        - ha1.qcow2
+        - ha2.qcow2
+        - ha3.qcow2
+        - ha1-seed.iso
+        - ha2-seed.iso
+        - ha3-seed.iso
+        - ha1-user-data.yml
+        - ha2-user-data.yml
+        - ha3-user-data.yml
+        - ha1-meta-data.yml
+        - ha2-meta-data.yml
+        - ha3-meta-data.yml
+
+    - name: Inspect former lab directory
+      ansible.builtin.stat:
+        path: "{{ old_lab_dir }}"
+      register: old_lab_dir_state
+
+    - name: Remove old directory only when empty
+      ansible.builtin.command: "rmdir {{ old_lab_dir }}"
+      when: old_lab_dir_state.stat.exists

@@ -1,0 +1,85 @@
+
+PLAY [Add two disposable Ceph KVM guests on the test host] *********************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'abrnoc-demo' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [abrnoc-demo]
+
+TASK [Inspect existing guest domains] ******************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Require host memory before adding two 2 GiB guests] **********************
+skipping: [abrnoc-demo]
+
+TASK [Require the Ceph-owned Debian base image] ********************************
+ok: [abrnoc-demo]
+
+TASK [Verify base image exists] ************************************************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Inspect DHCP reservations] ***********************************************
+ok: [abrnoc-demo]
+
+TASK [Reserve each guest address] **********************************************
+skipping: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+skipping: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+skipping: [abrnoc-demo]
+
+TASK [Render cloud-init data] **************************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Write guest metadata] ****************************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Inspect existing seed images] ********************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Build cloud-init seed images once] ***************************************
+skipping: [abrnoc-demo] => (item={'changed': False, 'stat': {'exists': True, 'path': '/var/lib/libvirt/images/abrnoc-ceph-lab/ceph2-seed.iso', 'mode': '0644', 'isdir': False, 'ischr': False, 'isblk': False, 'isreg': True, 'isfifo': False, 'islnk': False, 'issock': False, 'uid': 64055, 'gid': 64055, 'size': 374784, 'inode': 524289, 'dev': 65025, 'nlink': 1, 'atime': 1792513390.1935213, 'mtime': 1792513358.7565606, 'ctime': 1792513388.713476, 'wusr': True, 'rusr': True, 'xusr': False, 'wgrp': False, 'rgrp': True, 'xgrp': False, 'woth': False, 'roth': True, 'xoth': False, 'isuid': False, 'isgid': False, 'blocks': 736, 'block_size': 4096, 'device_type': 0, 'readable': True, 'writeable': True, 'executable': False, 'pw_name': 'libvirt-qemu', 'gr_name': 'libvirt-qemu', 'checksum': 'af443a96a29272d3aae3b54b67da6d5a2eafa8b7', 'mimetype': 'application/x-iso9660-image', 'charset': 'binary', 'version': '1206023579', 'attributes': ['extents'], 'attr_flags': 'e'}, 'invocation': {'module_args': {'path': '/var/lib/libvirt/images/abrnoc-ceph-lab/ceph2-seed.iso', 'follow': False, 'get_checksum': True, 'get_mime': True, 'get_attributes': True, 'checksum_algorithm': 'sha1'}}, 'failed': False, 'item': {'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stat': {'exists': True, 'path': '/var/lib/libvirt/images/abrnoc-ceph-lab/ceph3-seed.iso', 'mode': '0644', 'isdir': False, 'ischr': False, 'isblk': False, 'isreg': True, 'isfifo': False, 'islnk': False, 'issock': False, 'uid': 64055, 'gid': 64055, 'size': 374784, 'inode': 524290, 'dev': 65025, 'nlink': 1, 'atime': 1792513399.121794, 'mtime': 1792513362.6286788, 'ctime': 1792513397.68175, 'wusr': True, 'rusr': True, 'xusr': False, 'wgrp': False, 'rgrp': True, 'xgrp': False, 'woth': False, 'roth': True, 'xoth': False, 'isuid': False, 'isgid': False, 'blocks': 736, 'block_size': 4096, 'device_type': 0, 'readable': True, 'writeable': True, 'executable': False, 'pw_name': 'libvirt-qemu', 'gr_name': 'libvirt-qemu', 'checksum': 'a7cc81de11ffb125102322bee1b2ebf54da1bd29', 'mimetype': 'application/x-iso9660-image', 'charset': 'binary', 'version': '2852171313', 'attributes': ['extents'], 'attr_flags': 'e'}, 'invocation': {'module_args': {'path': '/var/lib/libvirt/images/abrnoc-ceph-lab/ceph3-seed.iso', 'follow': False, 'get_checksum': True, 'get_mime': True, 'get_attributes': True, 'checksum_algorithm': 'sha1'}}, 'failed': False, 'item': {'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo]
+
+TASK [Create sparse boot overlays] *********************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Create dedicated sparse OSD disks] ***************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Define and boot new guests] **********************************************
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': 'Id:             12\nName:           ceph2\nUUID:           77595695-4f7d-4578-b10d-06cb69d38871\nOS Type:        hvm\nState:          running\nCPU(s):         1\nCPU time:       363.6s\nMax memory:     2097152 KiB\nUsed memory:    2097152 KiB\nPersistent:     yes\nAutostart:      enable\nAutostart Once: disable\nManaged save:   no\nSecurity model: apparmor\nSecurity DOI:   0\nSecurity label: libvirt-77595695-4f7d-4578-b10d-06cb69d38871 (enforcing)', 'stderr': '', 'rc': 0, 'cmd': ['virsh', '-c', 'qemu:///system', 'dominfo', 'ceph2'], 'start': '2026-10-20 16:53:58.408037', 'end': '2026-10-20 16:53:58.496170', 'delta': '0:00:00.088133', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system dominfo ceph2', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['Id:             12', 'Name:           ceph2', 'UUID:           77595695-4f7d-4578-b10d-06cb69d38871', 'OS Type:        hvm', 'State:          running', 'CPU(s):         1', 'CPU time:       363.6s', 'Max memory:     2097152 KiB', 'Used memory:    2097152 KiB', 'Persistent:     yes', 'Autostart:      enable', 'Autostart Once: disable', 'Managed save:   no', 'Security model: apparmor', 'Security DOI:   0', 'Security label: libvirt-77595695-4f7d-4578-b10d-06cb69d38871 (enforcing)'], 'stderr_lines': [], 'failed': False, 'failed_when_result': False, 'item': {'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': 'Id:             13\nName:           ceph3\nUUID:           710a4f3e-76b7-4dfb-8d44-17dab21bcf95\nOS Type:        hvm\nState:          running\nCPU(s):         1\nCPU time:       335.5s\nMax memory:     2097152 KiB\nUsed memory:    2097152 KiB\nPersistent:     yes\nAutostart:      enable\nAutostart Once: disable\nManaged save:   no\nSecurity model: apparmor\nSecurity DOI:   0\nSecurity label: libvirt-710a4f3e-76b7-4dfb-8d44-17dab21bcf95 (enforcing)', 'stderr': '', 'rc': 0, 'cmd': ['virsh', '-c', 'qemu:///system', 'dominfo', 'ceph3'], 'start': '2026-10-20 16:54:01.304319', 'end': '2026-10-20 16:54:01.392494', 'delta': '0:00:00.088175', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system dominfo ceph3', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['Id:             13', 'Name:           ceph3', 'UUID:           710a4f3e-76b7-4dfb-8d44-17dab21bcf95', 'OS Type:        hvm', 'State:          running', 'CPU(s):         1', 'CPU time:       335.5s', 'Max memory:     2097152 KiB', 'Used memory:    2097152 KiB', 'Persistent:     yes', 'Autostart:      enable', 'Autostart Once: disable', 'Managed save:   no', 'Security model: apparmor', 'Security DOI:   0', 'Security label: libvirt-710a4f3e-76b7-4dfb-8d44-17dab21bcf95 (enforcing)'], 'stderr_lines': [], 'failed': False, 'failed_when_result': False, 'item': {'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo]
+
+TASK [Read guest states] *******************************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Start shut off guests] ***************************************************
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': 'running', 'stderr': '', 'rc': 0, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ceph2'], 'start': '2026-10-20 16:54:57.929173', 'end': '2026-10-20 16:54:58.024167', 'delta': '0:00:00.094994', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ceph2', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['running'], 'stderr_lines': [], 'failed': False, 'item': {'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': 'running', 'stderr': '', 'rc': 0, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ceph3'], 'start': '2026-10-20 16:55:00.837573', 'end': '2026-10-20 16:55:00.918187', 'delta': '0:00:00.080614', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ceph3', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['running'], 'stderr_lines': [], 'failed': False, 'item': {'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo]
+
+TASK [Read autostart settings] *************************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+TASK [Enable guest autostart] **************************************************
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': 'Id:             12\nName:           ceph2\nUUID:           77595695-4f7d-4578-b10d-06cb69d38871\nOS Type:        hvm\nState:          running\nCPU(s):         1\nCPU time:       368.7s\nMax memory:     2097152 KiB\nUsed memory:    2097152 KiB\nPersistent:     yes\nAutostart:      enable\nAutostart Once: disable\nManaged save:   no\nSecurity model: apparmor\nSecurity DOI:   0\nSecurity label: libvirt-77595695-4f7d-4578-b10d-06cb69d38871 (enforcing)', 'stderr': '', 'rc': 0, 'cmd': ['virsh', '-c', 'qemu:///system', 'dominfo', 'ceph2'], 'start': '2026-10-20 16:55:04.993436', 'end': '2026-10-20 16:55:05.072909', 'delta': '0:00:00.079473', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system dominfo ceph2', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['Id:             12', 'Name:           ceph2', 'UUID:           77595695-4f7d-4578-b10d-06cb69d38871', 'OS Type:        hvm', 'State:          running', 'CPU(s):         1', 'CPU time:       368.7s', 'Max memory:     2097152 KiB', 'Used memory:    2097152 KiB', 'Persistent:     yes', 'Autostart:      enable', 'Autostart Once: disable', 'Managed save:   no', 'Security model: apparmor', 'Security DOI:   0', 'Security label: libvirt-77595695-4f7d-4578-b10d-06cb69d38871 (enforcing)'], 'stderr_lines': [], 'failed': False, 'item': {'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': 'Id:             13\nName:           ceph3\nUUID:           710a4f3e-76b7-4dfb-8d44-17dab21bcf95\nOS Type:        hvm\nState:          running\nCPU(s):         1\nCPU time:       340.5s\nMax memory:     2097152 KiB\nUsed memory:    2097152 KiB\nPersistent:     yes\nAutostart:      enable\nAutostart Once: disable\nManaged save:   no\nSecurity model: apparmor\nSecurity DOI:   0\nSecurity label: libvirt-710a4f3e-76b7-4dfb-8d44-17dab21bcf95 (enforcing)', 'stderr': '', 'rc': 0, 'cmd': ['virsh', '-c', 'qemu:///system', 'dominfo', 'ceph3'], 'start': '2026-10-20 16:55:07.936380', 'end': '2026-10-20 16:55:08.030405', 'delta': '0:00:00.094025', 'msg': '', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system dominfo ceph3', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': ['Id:             13', 'Name:           ceph3', 'UUID:           710a4f3e-76b7-4dfb-8d44-17dab21bcf95', 'OS Type:        hvm', 'State:          running', 'CPU(s):         1', 'CPU time:       340.5s', 'Max memory:     2097152 KiB', 'Used memory:    2097152 KiB', 'Persistent:     yes', 'Autostart:      enable', 'Autostart Once: disable', 'Managed save:   no', 'Security model: apparmor', 'Security DOI:   0', 'Security label: libvirt-710a4f3e-76b7-4dfb-8d44-17dab21bcf95 (enforcing)'], 'stderr_lines': [], 'failed': False, 'item': {'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo]
+
+TASK [Wait for guest SSH from the KVM host] ************************************
+ok: [abrnoc-demo] => (item={'name': 'ceph2', 'ip': '192.168.122.125', 'mac': '52:54:00:ab:10:25', 'serial': 'CEPHOSD2'})
+ok: [abrnoc-demo] => (item={'name': 'ceph3', 'ip': '192.168.122.126', 'mac': '52:54:00:ab:10:26', 'serial': 'CEPHOSD3'})
+
+PLAY RECAP *********************************************************************
+abrnoc-demo                : ok=13   changed=0    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0

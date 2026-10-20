@@ -1,0 +1,43 @@
+---
+- name: Verify only the Ceph lab remains on the supplied KVM host
+  hosts: virt_hosts
+  become: true
+  gather_facts: false
+  tasks:
+    - name: List defined guests
+      ansible.builtin.command: virsh -c qemu:///system list --all --name
+      register: defined_guests
+      changed_when: false
+
+    - name: Check Ceph guest state
+      ansible.builtin.command: virsh -c qemu:///system domstate ceph1
+      register: ceph_guest_state
+      changed_when: false
+
+    - name: Read the lab network reservations
+      ansible.builtin.command: virsh -c qemu:///system net-dumpxml default
+      register: lab_network_xml
+      changed_when: false
+
+    - name: Inspect the retired lab directory
+      ansible.builtin.stat:
+        path: /var/lib/libvirt/images/abrnoc-ha-lab
+      register: old_lab_dir
+
+    - name: Require active Ceph guest and absence of former Gluster resources
+      ansible.builtin.assert:
+        that:
+          - "'ceph1' in defined_guests.stdout_lines"
+          - ceph_guest_state.stdout | trim == 'running'
+          - "'ha1' not in defined_guests.stdout_lines"
+          - "'ha2' not in defined_guests.stdout_lines"
+          - "'ha3' not in defined_guests.stdout_lines"
+          - "'52:54:00:ab:10:24' in lab_network_xml.stdout"
+          - "'52:54:00:ab:10:21' not in lab_network_xml.stdout"
+          - "'52:54:00:ab:10:22' not in lab_network_xml.stdout"
+          - "'52:54:00:ab:10:23' not in lab_network_xml.stdout"
+          - not old_lab_dir.stat.exists
+
+    - name: Show remaining defined guests
+      ansible.builtin.debug:
+        var: defined_guests.stdout_lines

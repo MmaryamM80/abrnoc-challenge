@@ -1,0 +1,21 @@
+{
+    "backtrace": [],
+    "ceph_version": "18.2.7",
+    "crash_id": "2026-10-20T16:33:26.372187Z_1eee56fa-7375-4c8f-9156-b152adfc7d6f",
+    "entity_name": "mgr.ceph3",
+    "mgr_module": "nfs",
+    "mgr_module_caller": "PyModule::load_subclass_of",
+    "mgr_python_exception": "AttributeError",
+    "os_id": "13",
+    "os_name": "Debian GNU/Linux 13 (trixie)",
+    "os_version": "13 (trixie)",
+    "os_version_id": "13",
+    "process_name": "ceph-mgr",
+    "stack_sig": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "timestamp": "2026-10-20T16:33:26.372187Z",
+    "utsname_hostname": "ceph3",
+    "utsname_machine": "x86_64",
+    "utsname_release": "6.12.113+deb13-cloud-amd64",
+    "utsname_sysname": "Linux",
+    "utsname_version": "#1 SMP PREEMPT_DYNAMIC Debian 6.12.113-1 (2026-10-15)"
+}

@@ -1,0 +1,70 @@
+---
+- name: Verify the isolated Ceph guest after removing the Gluster lab
+  hosts: ceph_lab
+  become: true
+  gather_facts: false
+  vars:
+    probe_input: /tmp/abrnoc-ceph-verify-input
+    probe_output: /tmp/abrnoc-ceph-verify-output
+    probe_object: abrnoc-ceph-verify
+  tasks:
+    - name: Read Ceph health
+      ansible.builtin.command: ceph health detail
+      register: ceph_health
+      changed_when: false
+
+    - name: Read Ceph service and placement-group state
+      ansible.builtin.command: ceph -s
+      register: ceph_status
+      changed_when: false
+
+    - name: Require one monitor, manager, and OSD with clean placement groups
+      ansible.builtin.assert:
+        that:
+          - "'mon: 1 daemons, quorum ceph1' in ceph_status.stdout"
+          - "'mgr: ceph1(active,' in ceph_status.stdout"
+          - "'1 osds: 1 up' in ceph_status.stdout"
+          - "'active+clean' in ceph_status.stdout"
+
+    - name: Exercise an object write and verified read
+      block:
+        - name: Write unique probe content
+          ansible.builtin.copy:
+            dest: "{{ probe_input }}"
+            content: "Ceph RADOS object round-trip verification from the Mac.\n"
+            mode: '0600'
+
+        - name: Put probe object
+          ansible.builtin.command: "rados -p lab-objects put {{ probe_object }} {{ probe_input }}"
+          changed_when: false
+
+        - name: Get probe object
+          ansible.builtin.command: "rados -p lab-objects get {{ probe_object }} {{ probe_output }}"
+          changed_when: false
+
+        - name: Compare written and read bytes
+          ansible.builtin.command: "cmp {{ probe_input }} {{ probe_output }}"
+          changed_when: false
+
+        - name: Report successful data validation
+          ansible.builtin.debug:
+            msg: RADOS put/get/cmp succeeded on lab-objects.
+      always:
+        - name: Remove probe object
+          ansible.builtin.command: "rados -p lab-objects rm {{ probe_object }}"
+          failed_when: false
+          changed_when: false
+
+        - name: Remove temporary probe files
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ probe_input }}"
+            - "{{ probe_output }}"
+
+    - name: Show status and health detail
+      ansible.builtin.debug:
+        msg:
+          - "{{ ceph_status.stdout_lines }}"
+          - "{{ ceph_health.stdout_lines }}"

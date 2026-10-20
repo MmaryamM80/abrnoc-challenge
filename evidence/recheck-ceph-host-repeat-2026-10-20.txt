@@ -1,0 +1,69 @@
+
+PLAY [Create a separate one-node Ceph KVM test guest] **************************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'abrnoc-demo' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [abrnoc-demo]
+
+TASK [Check capacity before adding a 4 GiB guest] ******************************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Create Ceph lab image directory] *****************************************
+ok: [abrnoc-demo]
+
+TASK [Check Debian base image in Ceph directory] *******************************
+ok: [abrnoc-demo]
+
+TASK [Fetch the official Debian 13 cloud image] ********************************
+skipping: [abrnoc-demo]
+
+TASK [Inspect DHCP reservations] ***********************************************
+ok: [abrnoc-demo]
+
+TASK [Reserve the Ceph guest address] ******************************************
+skipping: [abrnoc-demo]
+
+TASK [Render guest cloud-init data using the administrator public key] *********
+ok: [abrnoc-demo]
+
+TASK [Write guest metadata] ****************************************************
+ok: [abrnoc-demo]
+
+TASK [Inspect existing seed image] *********************************************
+ok: [abrnoc-demo]
+
+TASK [Build cloud-init seed image once] ****************************************
+skipping: [abrnoc-demo]
+
+TASK [Create sparse guest boot disk] *******************************************
+ok: [abrnoc-demo]
+
+TASK [Create dedicated sparse OSD disk] ****************************************
+ok: [abrnoc-demo]
+
+TASK [Inspect existing Ceph guest] *********************************************
+ok: [abrnoc-demo]
+
+TASK [Define and boot the isolated guest] **************************************
+skipping: [abrnoc-demo]
+
+TASK [Read Ceph guest state after definition] **********************************
+ok: [abrnoc-demo]
+
+TASK [Start the Ceph guest if it is shut off] **********************************
+skipping: [abrnoc-demo]
+
+TASK [Read Ceph guest autostart setting] ***************************************
+ok: [abrnoc-demo]
+
+TASK [Enable Ceph guest autostart] *********************************************
+skipping: [abrnoc-demo]
+
+TASK [Wait for SSH on the Ceph guest] ******************************************
+ok: [abrnoc-demo]
+
+PLAY RECAP *********************************************************************
+abrnoc-demo                : ok=14   changed=0    unreachable=0    failed=0    skipped=6    rescued=0    ignored=0

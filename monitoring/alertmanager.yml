@@ -1,0 +1,24 @@
+global:
+  resolve_timeout: 5m
+route:
+  receiver: record-only
+  group_by: ['alertname', 'host']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="critical"']
+      receiver: page
+    - matchers: ['severity="warning"']
+      receiver: business-hours
+      active_time_intervals: ['business-hours-tehran']
+receivers:
+  - name: page
+  - name: business-hours
+  - name: record-only
+time_intervals:
+  - name: business-hours-tehran
+    time_intervals:
+      - weekdays: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday']
+        times: [{start_time: '09:00', end_time: '18:00'}]
+        location: Asia/Tehran

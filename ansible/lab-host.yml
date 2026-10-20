@@ -1,0 +1,172 @@
+---
+- name: Create an isolated three-node KVM laboratory on the supplied host
+  hosts: virt_hosts
+  become: true
+  gather_facts: true
+  vars:
+    virt_host_lab_network_enabled: true
+    lab_dir: /var/lib/libvirt/images/abrnoc-ha-lab
+    lab_image_url: https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
+    lab_nodes:
+      - { name: ha1, mac: '52:54:00:ab:10:21', ip: '192.168.122.121' }
+      - { name: ha2, mac: '52:54:00:ab:10:22', ip: '192.168.122.122' }
+      - { name: ha3, mac: '52:54:00:ab:10:23', ip: '192.168.122.123' }
+  tasks:
+    - name: Require enough memory for three lab nodes
+      ansible.builtin.assert:
+        that: ansible_facts['memtotal_mb'] | int >= 9500
+        fail_msg: This lab needs at least 9.5 GiB RAM on the KVM host.
+
+    - name: Apply host role with isolated libvirt DNS and DHCP access
+      ansible.builtin.import_role:
+        name: virt_host
+
+    - name: Apply lab network firewall rule before starting guests
+      ansible.builtin.meta: flush_handlers
+
+    - name: Create lab image directory
+      ansible.builtin.file:
+        path: "{{ lab_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Fetch the official Debian 13 cloud image
+      ansible.builtin.get_url:
+        url: "{{ lab_image_url }}"
+        dest: "{{ lab_dir }}/debian-13-genericcloud-amd64.qcow2"
+        mode: '0644'
+        timeout: 120
+
+    - name: Start the isolated libvirt NAT network
+      ansible.builtin.command: virsh -c qemu:///system net-start default
+      register: lab_net_start
+      failed_when: lab_net_start.rc != 0 and 'already active' not in lab_net_start.stderr
+      changed_when: lab_net_start.rc == 0
+
+    - name: Inspect libvirt network autostart
+      ansible.builtin.command: virsh -c qemu:///system net-info default
+      register: lab_net_info
+      changed_when: false
+
+    - name: Make the lab NAT network persistent
+      ansible.builtin.command: virsh -c qemu:///system net-autostart default
+      when: "'Autostart:      yes' not in lab_net_info.stdout"
+
+    - name: Inspect DHCP reservations
+      ansible.builtin.command: virsh -c qemu:///system net-dumpxml default
+      register: lab_net_xml
+      changed_when: false
+
+    - name: Reserve stable lab addresses
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - -c
+          - qemu:///system
+          - net-update
+          - default
+          - add
+          - ip-dhcp-host
+          - "<host mac='{{ item.mac }}' name='{{ item.name }}' ip='{{ item.ip }}'/>"
+          - --live
+          - --config
+      loop: "{{ lab_nodes }}"
+      when: item.mac not in lab_net_xml.stdout
+
+    - name: Create cloud-init user data
+      ansible.builtin.template:
+        src: templates/lab-user-data.yml.j2
+        dest: "{{ lab_dir }}/{{ item.name }}-user-data.yml"
+        mode: '0644'
+      loop: "{{ lab_nodes }}"
+      register: lab_user_data
+
+    - name: Create cloud-init instance metadata
+      ansible.builtin.copy:
+        dest: "{{ lab_dir }}/{{ item.name }}-meta-data.yml"
+        content: "instance-id: {{ item.name }}-v1\nlocal-hostname: {{ item.name }}\n"
+        mode: '0644'
+      loop: "{{ lab_nodes }}"
+      register: lab_meta_data
+
+    - name: Inspect existing seed images
+      ansible.builtin.stat:
+        path: "{{ lab_dir }}/{{ item.name }}-seed.iso"
+      loop: "{{ lab_nodes }}"
+      register: lab_seed_stats
+
+    - name: Build cloud-init seed images
+      ansible.builtin.command:
+        argv:
+          - cloud-localds
+          - "{{ lab_dir }}/{{ item.name }}-seed.iso"
+          - "{{ lab_dir }}/{{ item.name }}-user-data.yml"
+          - "{{ lab_dir }}/{{ item.name }}-meta-data.yml"
+      loop: "{{ lab_nodes }}"
+      loop_control:
+        index_var: node_index
+      when: lab_user_data.results[node_index].changed or lab_meta_data.results[node_index].changed or not lab_seed_stats.results[node_index].stat.exists
+
+    - name: Create sparse guest disks on the base image
+      ansible.builtin.command:
+        argv:
+          - qemu-img
+          - create
+          - -f
+          - qcow2
+          - -F
+          - qcow2
+          - -b
+          - "{{ lab_dir }}/debian-13-genericcloud-amd64.qcow2"
+          - "{{ lab_dir }}/{{ item.name }}.qcow2"
+          - 12G
+        creates: "{{ lab_dir }}/{{ item.name }}.qcow2"
+      loop: "{{ lab_nodes }}"
+
+    - name: Inspect existing domains
+      ansible.builtin.command: "virsh -c qemu:///system dominfo {{ item.name }}"
+      loop: "{{ lab_nodes }}"
+      register: lab_domains
+      failed_when: false
+      changed_when: false
+
+    - name: Define and boot KVM lab nodes
+      ansible.builtin.command:
+        argv:
+          - virt-install
+          - --connect
+          - qemu:///system
+          - --name
+          - "{{ item.name }}"
+          - --memory
+          - '1536'
+          - --vcpus
+          - '1'
+          - --cpu
+          - host-passthrough
+          - --disk
+          - "path={{ lab_dir }}/{{ item.name }}.qcow2,bus=virtio"
+          - --disk
+          - "path={{ lab_dir }}/{{ item.name }}-seed.iso,device=cdrom"
+          - --network
+          - "network=default,model=virtio,mac={{ item.mac }}"
+          - --osinfo
+          - debian13
+          - --graphics
+          - vnc,listen=127.0.0.1
+          - --video
+          - virtio
+          - --import
+          - --noautoconsole
+      loop: "{{ lab_nodes }}"
+      loop_control:
+        index_var: node_index
+      when: lab_domains.results[node_index].rc != 0
+
+    - name: Wait until each guest has SSH
+      ansible.builtin.wait_for:
+        host: "{{ item.ip }}"
+        port: 22
+        delay: 5
+        timeout: 240
+      loop: "{{ lab_nodes }}"

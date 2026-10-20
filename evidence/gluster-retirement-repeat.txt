@@ -1,0 +1,64 @@
+
+PLAY [Retire the three isolated Gluster test guests after Ceph migration] ******
+
+TASK [Check Ceph guest state] **************************************************
+ok: [abrnoc-demo]
+
+TASK [Inspect Ceph boot disk backing image] ************************************
+ok: [abrnoc-demo]
+
+TASK [Require running Ceph guest and independent base image] *******************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Inspect former Gluster guest states] *************************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+TASK [Stop former Gluster guests] **********************************************
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': '', 'stderr': "error: failed to get domain 'ha1'", 'rc': 1, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ha1'], 'start': '2026-10-20 12:27:47.121944', 'end': '2026-10-20 12:27:47.203738', 'delta': '0:00:00.081794', 'failed': False, 'msg': 'non-zero return code', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ha1', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': [], 'stderr_lines': ["error: failed to get domain 'ha1'"], 'failed_when_result': False, 'failed_when_suppressed_exception': '(traceback unavailable)', 'item': {'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': '', 'stderr': "error: failed to get domain 'ha2'", 'rc': 1, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ha2'], 'start': '2026-10-20 12:27:50.616328', 'end': '2026-10-20 12:27:50.693890', 'delta': '0:00:00.077562', 'failed': False, 'msg': 'non-zero return code', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ha2', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': [], 'stderr_lines': ["error: failed to get domain 'ha2'"], 'failed_when_result': False, 'failed_when_suppressed_exception': '(traceback unavailable)', 'item': {'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': '', 'stderr': "error: failed to get domain 'ha3'", 'rc': 1, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ha3'], 'start': '2026-10-20 12:27:54.474851', 'end': '2026-10-20 12:27:54.559531', 'delta': '0:00:00.084680', 'failed': False, 'msg': 'non-zero return code', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ha3', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': [], 'stderr_lines': ["error: failed to get domain 'ha3'"], 'failed_when_result': False, 'failed_when_suppressed_exception': '(traceback unavailable)', 'item': {'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo]
+
+TASK [Undefine former Gluster guests] ******************************************
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': '', 'stderr': "error: failed to get domain 'ha1'", 'rc': 1, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ha1'], 'start': '2026-10-20 12:27:47.121944', 'end': '2026-10-20 12:27:47.203738', 'delta': '0:00:00.081794', 'failed': False, 'msg': 'non-zero return code', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ha1', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': [], 'stderr_lines': ["error: failed to get domain 'ha1'"], 'failed_when_result': False, 'failed_when_suppressed_exception': '(traceback unavailable)', 'item': {'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': '', 'stderr': "error: failed to get domain 'ha2'", 'rc': 1, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ha2'], 'start': '2026-10-20 12:27:50.616328', 'end': '2026-10-20 12:27:50.693890', 'delta': '0:00:00.077562', 'failed': False, 'msg': 'non-zero return code', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ha2', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': [], 'stderr_lines': ["error: failed to get domain 'ha2'"], 'failed_when_result': False, 'failed_when_suppressed_exception': '(traceback unavailable)', 'item': {'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo] => (item={'changed': False, 'stdout': '', 'stderr': "error: failed to get domain 'ha3'", 'rc': 1, 'cmd': ['virsh', '-c', 'qemu:///system', 'domstate', 'ha3'], 'start': '2026-10-20 12:27:54.474851', 'end': '2026-10-20 12:27:54.559531', 'delta': '0:00:00.084680', 'failed': False, 'msg': 'non-zero return code', 'invocation': {'module_args': {'_raw_params': 'virsh -c qemu:///system domstate ha3', '_uses_shell': False, 'expand_argument_vars': True, 'stdin_add_newline': True, 'strip_empty_ends': True, 'cmd': None, 'argv': None, 'chdir': None, 'executable': None, 'creates': None, 'removes': None, 'stdin': None}}, 'stdout_lines': [], 'stderr_lines': ["error: failed to get domain 'ha3'"], 'failed_when_result': False, 'failed_when_suppressed_exception': '(traceback unavailable)', 'item': {'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'}, 'ansible_loop_var': 'item'})
+skipping: [abrnoc-demo]
+
+TASK [Inspect lab DHCP reservations] *******************************************
+ok: [abrnoc-demo]
+
+TASK [Remove former Gluster guest DHCP reservations] ***************************
+skipping: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+skipping: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+skipping: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+skipping: [abrnoc-demo]
+
+TASK [Remove only known former Gluster lab files] ******************************
+ok: [abrnoc-demo] => (item=debian-13-genericcloud-amd64.qcow2)
+ok: [abrnoc-demo] => (item=ha1.qcow2)
+ok: [abrnoc-demo] => (item=ha2.qcow2)
+ok: [abrnoc-demo] => (item=ha3.qcow2)
+ok: [abrnoc-demo] => (item=ha1-seed.iso)
+ok: [abrnoc-demo] => (item=ha2-seed.iso)
+ok: [abrnoc-demo] => (item=ha3-seed.iso)
+ok: [abrnoc-demo] => (item=ha1-user-data.yml)
+ok: [abrnoc-demo] => (item=ha2-user-data.yml)
+ok: [abrnoc-demo] => (item=ha3-user-data.yml)
+ok: [abrnoc-demo] => (item=ha1-meta-data.yml)
+ok: [abrnoc-demo] => (item=ha2-meta-data.yml)
+ok: [abrnoc-demo] => (item=ha3-meta-data.yml)
+
+TASK [Inspect former lab directory] ********************************************
+ok: [abrnoc-demo]
+
+TASK [Remove old directory only when empty] ************************************
+skipping: [abrnoc-demo]
+
+PLAY RECAP *********************************************************************
+abrnoc-demo                : ok=7    changed=0    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0

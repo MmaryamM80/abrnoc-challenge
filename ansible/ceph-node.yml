@@ -1,0 +1,396 @@
+---
+- name: Bootstrap an isolated single-node Ceph functional lab
+  hosts: ceph_lab
+  become: true
+  gather_facts: true
+  vars:
+    ceph_osd_device: /dev/disk/by-id/virtio-CEPHOSD1
+    ceph_mon_dir: /var/lib/ceph/mon/ceph-ceph1
+    ceph_mgr_dir: /var/lib/ceph/mgr/ceph-ceph1
+  tasks:
+    - name: Require the dedicated OSD disk and expected guest address
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['default_ipv4']['address'] == '192.168.122.124'
+          - ansible_facts['memtotal_mb'] | int >= 3800
+
+    - name: Install Debian Ceph packages
+      ansible.builtin.apt:
+        name:
+          - ceph-mon
+          - ceph-mgr
+          - ceph-osd
+          - ceph-volume
+          - ceph-common
+          - python3-crypt-r
+          - lvm2
+          - acl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Ensure Ceph configuration directory exists
+      ansible.builtin.file:
+        path: /etc/ceph
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: '0755'
+
+    - name: Check persistent cluster identity
+      ansible.builtin.stat:
+        path: /etc/ceph/lab-fsid
+      register: ceph_fsid_file
+
+    - name: Generate cluster identity once
+      ansible.builtin.command: uuidgen
+      register: new_ceph_fsid
+      when: not ceph_fsid_file.stat.exists
+
+    - name: Persist cluster identity
+      ansible.builtin.copy:
+        dest: /etc/ceph/lab-fsid
+        content: "{{ new_ceph_fsid.stdout }}\n"
+        owner: root
+        group: root
+        mode: '0644'
+      when: not ceph_fsid_file.stat.exists
+
+    - name: Read persistent cluster identity
+      ansible.builtin.command: cat /etc/ceph/lab-fsid
+      register: ceph_fsid
+      changed_when: false
+
+    - name: Render Ceph configuration
+      ansible.builtin.template:
+        src: templates/ceph.conf.j2
+        dest: /etc/ceph/ceph.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create monitor secret
+      ansible.builtin.command:
+        argv:
+          - ceph-authtool
+          - --create-keyring
+          - /etc/ceph/ceph.mon.keyring
+          - --gen-key
+          - -n
+          - mon.
+          - --cap
+          - mon
+          - allow *
+        creates: /etc/ceph/ceph.mon.keyring
+      no_log: true
+
+    - name: Create administrator secret
+      ansible.builtin.command:
+        argv:
+          - ceph-authtool
+          - --create-keyring
+          - /etc/ceph/ceph.client.admin.keyring
+          - --gen-key
+          - -n
+          - client.admin
+          - --cap
+          - mon
+          - allow *
+          - --cap
+          - osd
+          - allow *
+          - --cap
+          - mds
+          - allow *
+          - --cap
+          - mgr
+          - allow *
+        creates: /etc/ceph/ceph.client.admin.keyring
+      no_log: true
+
+    - name: Make bootstrap OSD key directory
+      ansible.builtin.file:
+        path: /var/lib/ceph/bootstrap-osd
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: '0750'
+
+    - name: Create OSD bootstrap secret
+      ansible.builtin.command:
+        argv:
+          - ceph-authtool
+          - --create-keyring
+          - /var/lib/ceph/bootstrap-osd/ceph.keyring
+          - --gen-key
+          - -n
+          - client.bootstrap-osd
+          - --cap
+          - mon
+          - allow profile bootstrap-osd
+          - --cap
+          - mgr
+          - allow r
+        creates: /var/lib/ceph/bootstrap-osd/ceph.keyring
+      no_log: true
+
+    - name: Restrict Ceph secret permissions
+      ansible.builtin.file:
+        path: "{{ item }}"
+        owner: ceph
+        group: ceph
+        mode: '0600'
+      loop:
+        - /etc/ceph/ceph.mon.keyring
+        - /etc/ceph/ceph.client.admin.keyring
+        - /var/lib/ceph/bootstrap-osd/ceph.keyring
+
+    - name: Check monitor initialization
+      ansible.builtin.stat:
+        path: "{{ ceph_mon_dir }}/store.db"
+      register: ceph_mon_store
+
+    - name: Import bootstrap identities into monitor keyring
+      ansible.builtin.command:
+        argv:
+          - ceph-authtool
+          - /etc/ceph/ceph.mon.keyring
+          - --import-keyring
+          - "{{ item }}"
+      loop:
+        - /etc/ceph/ceph.client.admin.keyring
+        - /var/lib/ceph/bootstrap-osd/ceph.keyring
+      when: not ceph_mon_store.stat.exists
+      no_log: true
+
+    - name: Build monitor map
+      ansible.builtin.command:
+        argv:
+          - monmaptool
+          - --create
+          - --add
+          - ceph1
+          - 192.168.122.124
+          - --fsid
+          - "{{ ceph_fsid.stdout | trim }}"
+          - /etc/ceph/ceph.monmap
+        creates: /etc/ceph/ceph.monmap
+      when: not ceph_mon_store.stat.exists
+
+    - name: Make monitor directory
+      ansible.builtin.file:
+        path: "{{ ceph_mon_dir }}"
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: '0750'
+
+    - name: Initialize monitor database
+      ansible.builtin.command:
+        argv:
+          - ceph-mon
+          - --mkfs
+          - -i
+          - ceph1
+          - --monmap
+          - /etc/ceph/ceph.monmap
+          - --keyring
+          - /etc/ceph/ceph.mon.keyring
+        creates: "{{ ceph_mon_dir }}/store.db"
+      become_user: ceph
+
+    - name: Start monitor
+      ansible.builtin.systemd_service:
+        name: ceph-mon@ceph1
+        enabled: true
+        state: started
+
+    - name: Wait for monitor quorum
+      ansible.builtin.command: ceph quorum_status --format json
+      register: ceph_quorum
+      retries: 20
+      delay: 3
+      until: ceph_quorum.rc == 0
+      changed_when: false
+
+    - name: Inspect monitor address protocols
+      ansible.builtin.command: ceph mon dump --format json
+      register: ceph_mon_dump
+      changed_when: false
+
+    - name: Enable Ceph messenger v2
+      ansible.builtin.command: ceph mon enable-msgr2
+      when: "'v2' not in ((ceph_mon_dump.stdout | from_json).mons[0].public_addrs.addrvec | map(attribute='type') | list)"
+
+    - name: Read insecure global ID reclaim setting
+      ansible.builtin.command: ceph config get mon auth_allow_insecure_global_id_reclaim
+      register: ceph_insecure_reclaim
+      changed_when: false
+
+    - name: Disallow insecure global ID reclaim
+      ansible.builtin.command: ceph config set mon auth_allow_insecure_global_id_reclaim false
+      when: ceph_insecure_reclaim.stdout | trim != 'false'
+
+    - name: Make manager directory
+      ansible.builtin.file:
+        path: "{{ ceph_mgr_dir }}"
+        state: directory
+        owner: ceph
+        group: ceph
+        mode: '0750'
+
+    - name: Register and create manager identity
+      ansible.builtin.command:
+        argv:
+          - ceph
+          - auth
+          - get-or-create
+          - mgr.ceph1
+          - mon
+          - allow profile mgr
+          - osd
+          - allow *
+          - mds
+          - allow *
+          - -o
+          - "{{ ceph_mgr_dir }}/keyring"
+        creates: "{{ ceph_mgr_dir }}/keyring"
+      no_log: true
+
+    - name: Restrict manager secret
+      ansible.builtin.file:
+        path: "{{ ceph_mgr_dir }}/keyring"
+        owner: ceph
+        group: ceph
+        mode: '0600'
+
+    - name: Identify Debian Ceph manager package version
+      ansible.builtin.command:
+        argv: [dpkg-query, -W, '-f=${Version}', ceph-mgr]
+      register: ceph_mgr_version
+      changed_when: false
+
+    # Debian bug #1148903: bcrypt's PyO3 extension cannot load in the
+    # subinterpreters used by ceph-mgr. Apply only to the affected package.
+    - name: Replace bcrypt import in the affected Debian manager
+      ansible.builtin.replace:
+        path: /usr/share/ceph/mgr/mgr_util.py
+        regexp: '^import bcrypt$'
+        replace: 'import crypt_r as crypt'
+        backup: true
+      when: ceph_mgr_version.stdout == '18.2.7+ds-1+deb13u1'
+      notify: Restart manager
+
+    - name: Replace bcrypt salt generation in the affected Debian manager
+      ansible.builtin.replace:
+        path: /usr/share/ceph/mgr/mgr_util.py
+        regexp: 'salt = bcrypt\.gensalt\(\)'
+        replace: 'salt = crypt.mksalt(crypt.METHOD_BLOWFISH, rounds=4096)'
+      when: ceph_mgr_version.stdout == '18.2.7+ds-1+deb13u1'
+      notify: Restart manager
+
+    - name: Replace bcrypt password hashing in the affected Debian manager
+      ansible.builtin.replace:
+        path: /usr/share/ceph/mgr/mgr_util.py
+        regexp: 'salt = salt_password\.encode\(''utf8''\)\n    return bcrypt\.hashpw\(password\.encode\(''utf8''\), salt\)\.decode\(''utf8''\)'
+        replace: 'salt = salt_password\n    return crypt.crypt(password, salt)'
+      when: ceph_mgr_version.stdout == '18.2.7+ds-1+deb13u1'
+      notify: Restart manager
+
+    - name: Start manager
+      ansible.builtin.systemd_service:
+        name: ceph-mgr@ceph1
+        enabled: true
+        state: started
+
+    - name: Apply manager compatibility fix before health checks
+      ansible.builtin.meta: flush_handlers
+
+    - name: Read enabled manager modules
+      ansible.builtin.command: ceph mgr module ls --format json
+      register: ceph_mgr_modules
+      changed_when: false
+
+    - name: Disable the unused Debian restful module
+      ansible.builtin.command: ceph mgr module disable restful
+      when: "'restful' in (ceph_mgr_modules.stdout | from_json).enabled_modules"
+      notify: Restart manager
+
+    - name: Restart manager after disabling the module
+      ansible.builtin.meta: flush_handlers
+
+    - name: Check whether an OSD already exists
+      ansible.builtin.command: ceph osd ls --format json
+      register: ceph_osds
+      changed_when: false
+
+    - name: Read dedicated disk serial before provisioning
+      ansible.builtin.command: lsblk -dn -o SERIAL /dev/vdb
+      register: ceph_disk_serial
+      changed_when: false
+      when: (ceph_osds.stdout | from_json | length) == 0
+
+    - name: Inspect disk signatures before provisioning
+      ansible.builtin.command: wipefs -n /dev/vdb
+      register: ceph_disk_signatures
+      changed_when: false
+      when: (ceph_osds.stdout | from_json | length) == 0
+
+    - name: Require the empty dedicated OSD disk
+      ansible.builtin.assert:
+        that:
+          - ceph_disk_serial.stdout | trim == 'CEPHOSD1'
+          - ceph_disk_signatures.stdout | trim == ''
+      when: (ceph_osds.stdout | from_json | length) == 0
+
+    - name: Provision the dedicated OSD disk
+      ansible.builtin.command:
+        argv:
+          - ceph-volume
+          - lvm
+          - create
+          - --data
+          - "{{ ceph_osd_device }}"
+      when: (ceph_osds.stdout | from_json | length) == 0
+
+    - name: Read single-replica lab permission
+      ansible.builtin.command: ceph config get mon mon_allow_pool_size_one
+      register: ceph_allow_size_one
+      changed_when: false
+
+    - name: Allow size-one pools only in this isolated lab
+      ansible.builtin.command: ceph config set mon mon_allow_pool_size_one true
+      when: ceph_allow_size_one.stdout | trim != 'true'
+
+    - name: List existing Ceph pools
+      ansible.builtin.command: ceph osd pool ls --format json
+      register: ceph_pool_list
+      changed_when: false
+
+    - name: Create functional object test pool
+      ansible.builtin.command: ceph osd pool create lab-objects 8
+      when: "'lab-objects' not in (ceph_pool_list.stdout | from_json)"
+
+    - name: Read object pool applications
+      ansible.builtin.command: ceph osd pool application get lab-objects --format json
+      register: ceph_pool_applications
+      changed_when: false
+
+    - name: Enable RADOS application on test pool
+      ansible.builtin.command: ceph osd pool application enable lab-objects rados
+      when: "'rados' not in (ceph_pool_applications.stdout | from_json)"
+
+    - name: Read Ceph health after OSD provisioning
+      ansible.builtin.command: ceph -s
+      register: ceph_status
+      changed_when: false
+
+    - name: Show Ceph status
+      ansible.builtin.debug:
+        var: ceph_status.stdout_lines
+
+  handlers:
+    - name: Restart manager
+      ansible.builtin.systemd_service:
+        name: ceph-mgr@ceph1
+        state: restarted

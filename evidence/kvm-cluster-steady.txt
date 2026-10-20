@@ -1,0 +1,123 @@
+
+PLAY [Configure replicated lab storage and a failover service] *****************
+
+TASK [Gathering Facts] *********************************************************
+ok: [ha3]
+ok: [ha2]
+ok: [ha1]
+
+TASK [Wait for cloud-init to finish] *******************************************
+ok: [ha3]
+ok: [ha2]
+ok: [ha1]
+
+TASK [Register fixed lab node names] *******************************************
+ok: [ha3]
+ok: [ha1]
+ok: [ha2]
+
+TASK [Install replication, web and failover tools] *****************************
+ok: [ha1]
+ok: [ha3]
+ok: [ha2]
+
+TASK [Enable Gluster server] ***************************************************
+ok: [ha2]
+ok: [ha1]
+ok: [ha3]
+
+TASK [Create storage brick and client directories] *****************************
+ok: [ha2] => (item=/srv/gluster/brick/ha)
+ok: [ha3] => (item=/srv/gluster/brick/ha)
+ok: [ha1] => (item=/srv/gluster/brick/ha)
+ok: [ha2] => (item=/mnt/ha)
+ok: [ha3] => (item=/mnt/ha)
+ok: [ha1] => (item=/mnt/ha)
+
+TASK [Inspect peer membership] *************************************************
+ok: [ha1]
+
+TASK [Join the other two Gluster servers] **************************************
+skipping: [ha1] => (item=ha2)
+skipping: [ha1] => (item=ha3)
+skipping: [ha1]
+
+TASK [Wait for Gluster peers to connect] ***************************************
+ok: [ha1]
+
+TASK [Inspect replicated volume] ***********************************************
+ok: [ha1]
+
+TASK [Create a three-way replicated volume] ************************************
+skipping: [ha1]
+
+TASK [Start the replicated volume] *********************************************
+skipping: [ha1]
+
+TASK [Inspect Gluster client quorum] *******************************************
+ok: [ha1]
+
+TASK [Require two of three bricks for writes] **********************************
+skipping: [ha1]
+
+TASK [Persist Gluster mounts] **************************************************
+ok: [ha3]
+ok: [ha2]
+ok: [ha1]
+
+TASK [Inspect the client mount] ************************************************
+ok: [ha1]
+ok: [ha2]
+ok: [ha3]
+
+TASK [Mount the replicated volume] *********************************************
+skipping: [ha1]
+skipping: [ha2]
+skipping: [ha3]
+
+TASK [Create shared web directory] *********************************************
+ok: [ha1]
+
+TASK [Publish a shared health page] ********************************************
+ok: [ha1]
+
+TASK [Configure nginx to serve replicated data] ********************************
+ok: [ha1]
+ok: [ha2]
+ok: [ha3]
+
+TASK [Enable nginx] ************************************************************
+ok: [ha1]
+ok: [ha2]
+ok: [ha3]
+
+TASK [Install failover health check] *******************************************
+ok: [ha1]
+ok: [ha3]
+ok: [ha2]
+
+TASK [Configure a lab-only failover IP] ****************************************
+ok: [ha2]
+ok: [ha1]
+ok: [ha3]
+
+TASK [Enable failover service] *************************************************
+ok: [ha2]
+ok: [ha1]
+ok: [ha3]
+
+TASK [Apply configuration before validating service] ***************************
+
+TASK [Apply configuration before validating service] ***************************
+
+TASK [Apply configuration before validating service] ***************************
+
+TASK [Check the local shared page] *********************************************
+ok: [ha2]
+ok: [ha1]
+ok: [ha3]
+
+PLAY RECAP *********************************************************************
+ha1                        : ok=20   changed=0    unreachable=0    failed=0    skipped=5    rescued=0    ignored=0
+ha2                        : ok=14   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+ha3                        : ok=14   changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0

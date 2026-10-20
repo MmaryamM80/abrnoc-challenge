@@ -1,0 +1,21 @@
+#!/usr/sbin/nft -f
+flush ruleset
+table inet filter {
+  chain input {
+    type filter hook input priority 0; policy drop;
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+    ip protocol icmp accept
+    ip6 nexthdr ipv6-icmp accept
+    udp sport 67 udp dport 68 accept
+    udp sport 547 udp dport 546 accept
+    tcp dport {{ virt_host_ssh_port }} accept
+{% if virt_host_lab_network_enabled %}
+    iifname "virbr0" udp dport { 53, 67 } accept
+    iifname "virbr0" tcp dport 53 accept
+{% endif %}
+  }
+  chain forward { type filter hook forward priority 0; policy accept; }
+  chain output { type filter hook output priority 0; policy accept; }
+}

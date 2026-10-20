@@ -1,0 +1,18 @@
+all:
+  children:
+    ha_nodes:
+      vars:
+        ansible_user: ansible
+        ansible_become: true
+        ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+        ansible_ssh_common_args: -o ProxyJump=ansible@104.194.148.88 -o StrictHostKeyChecking=accept-new
+      hosts:
+        ha1:
+          ansible_host: 192.168.122.121
+          ha_priority: 150
+        ha2:
+          ansible_host: 192.168.122.122
+          ha_priority: 120
+        ha3:
+          ansible_host: 192.168.122.123
+          ha_priority: 100

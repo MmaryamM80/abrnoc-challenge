@@ -1,0 +1,2 @@
+Prometheus Server is Ready.
+OK{"status":"success","data":{"resultType":"vector","result":[{"metric":{"__name__":"libvirt_up","host":"debian-London-12gb","instance":"127.0.0.1:9177","job":"libvirt"},"value":[1792504564.345,"1"]}]}}

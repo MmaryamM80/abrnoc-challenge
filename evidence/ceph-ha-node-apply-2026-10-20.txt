@@ -1,0 +1,59 @@
+
+PLAY [Export bootstrap material from the existing Ceph monitor] ****************
+
+TASK [Read persistent Ceph cluster identity] ***********************************
+[WARNING]: Host 'ceph1' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [ceph1]
+
+TASK [Export monitor authentication] *******************************************
+ok: [ceph1]
+
+TASK [Read bootstrap files for new guests] *************************************
+ok: [ceph1] => (item=(censored due to no_log))
+ok: [ceph1] => (item=(censored due to no_log))
+ok: [ceph1] => (item=(censored due to no_log))
+
+PLAY [Join each new guest to Ceph without losing monitor quorum] ***************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'ceph2' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [ceph2]
+
+TASK [Verify the expected guest address and dedicated disk] ********************
+ok: [ceph2] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Install Ceph packages] ***************************************************
+ok: [ceph2]
+
+TASK [Install acknowledged-object recovery probe] ******************************
+changed: [ceph2]
+
+TASK [Create Ceph configuration and bootstrap directories] *********************
+ok: [ceph2] => (item=/etc/ceph)
+ok: [ceph2] => (item=/var/lib/ceph/bootstrap-osd)
+ok: [ceph2] => (item=/var/lib/ceph/mon/ceph-ceph2)
+ok: [ceph2] => (item=/var/lib/ceph/mgr/ceph-ceph2)
+
+TASK [Render replicated Ceph configuration] ************************************
+ok: [ceph2]
+
+TASK [Copy existing secret keyrings] *******************************************
+ok: [ceph2] => (item=(censored due to no_log))
+[ERROR]: Task failed: Timeout (12s) waiting for privilege escalation prompt:
+Origin: <repository>/ansible/ceph-ha-node.yml:83:7
+
+81         mode: '0644'
+82
+83     - name: Copy existing secret keyrings
+         ^ column 7
+
+failed: [ceph2] (item=(censored due to no_log)) => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}
+ok: [ceph2] => (item=(censored due to no_log))
+fatal: [ceph2]: UNREACHABLE! => {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false, "results": [{"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}, {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false, "exception": "(traceback unavailable)"}, {"censored": "the output has been hidden due to the fact that 'no_log: true' was specified for this result", "changed": false}]}
+
+PLAY RECAP *********************************************************************
+ceph1                      : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+ceph2                      : ok=6    changed=1    unreachable=1    failed=0    skipped=0    rescued=0    ignored=0

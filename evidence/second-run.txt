@@ -1,0 +1,99 @@
+
+PLAY [Provision virtualization host and local monitoring demonstration] ********
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [virt_host : Require Debian and a provisioning public key] ****************
+ok: [localhost] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Install host and exporter packages] **************************
+ok: [localhost]
+
+TASK [virt_host : Create node exporter textfile directory for controlled alert tests] ***
+ok: [localhost]
+
+TASK [virt_host : Bind node exporter to local monitoring and enable textfile metrics] ***
+ok: [localhost]
+
+TASK [virt_host : Bind libvirt exporter to local monitoring] *******************
+ok: [localhost]
+
+TASK [virt_host : Grant libvirt exporter access to the libvirt system socket] ***
+ok: [localhost]
+
+TASK [virt_host : Create the administration user] ******************************
+ok: [localhost]
+
+TASK [virt_host : Create administrator SSH directory] **************************
+ok: [localhost]
+
+TASK [virt_host : Install administrator public key] ****************************
+ok: [localhost]
+
+TASK [virt_host : Permit passwordless administration for automation user] ******
+ok: [localhost]
+
+TASK [virt_host : Install SSH hardening drop-in] *******************************
+ok: [localhost]
+
+TASK [virt_host : Remove superseded SSH drop-in] *******************************
+ok: [localhost]
+
+TASK [virt_host : Validate SSH configuration before reloading] *****************
+ok: [localhost]
+
+TASK [virt_host : Inspect effective SSH authentication policy] *****************
+ok: [localhost]
+
+TASK [virt_host : Require key-only non-root SSH access] ************************
+ok: [localhost] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Configure persistent journald storage] ***********************
+ok: [localhost]
+
+TASK [virt_host : Create journald configuration directory] *********************
+ok: [localhost]
+
+TASK [virt_host : Install journald retention configuration] ********************
+ok: [localhost]
+
+TASK [virt_host : Install conservative kernel settings] ************************
+ok: [localhost]
+
+TASK [virt_host : Install nftables policy] *************************************
+ok: [localhost]
+
+TASK [virt_host : Enable host services] ****************************************
+ok: [localhost] => (item=chrony)
+ok: [localhost] => (item=nftables)
+ok: [localhost] => (item=rsyslog)
+ok: [localhost] => (item=libvirtd)
+ok: [localhost] => (item=prometheus-node-exporter)
+ok: [localhost] => (item=prometheus-libvirt-exporter)
+
+TASK [virt_host : Bind demo monitoring locally and disable Alertmanager gossip on one host] ***
+ok: [localhost] => (item={'service': 'prometheus', 'args': '--web.listen-address=127.0.0.1:9090'})
+ok: [localhost] => (item={'service': 'prometheus-alertmanager', 'args': '--web.listen-address=127.0.0.1:9093 --cluster.listen-address='})
+
+TASK [virt_host : Install Prometheus scrape and Alertmanager config] ***********
+ok: [localhost]
+
+TASK [virt_host : Install alert rules] *****************************************
+ok: [localhost]
+
+TASK [virt_host : Install Alertmanager routing] ********************************
+ok: [localhost]
+
+TASK [virt_host : Enable demo monitoring services] *****************************
+ok: [localhost] => (item=prometheus)
+ok: [localhost] => (item=prometheus-alertmanager)
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=27   changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0

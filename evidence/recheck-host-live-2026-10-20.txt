@@ -1,0 +1,29 @@
+Id:             11
+Name:           ceph1
+UUID:           dbe86385-a713-4898-8751-377622134883
+OS Type:        hvm
+State:          running
+CPU(s):         2
+CPU time:       552.6s
+Max memory:     4194304 KiB
+Used memory:    4194304 KiB
+Persistent:     yes
+Autostart:      enable
+Autostart Once: disable
+Managed save:   no
+Security model: apparmor
+Security DOI:   0
+Security label: libvirt-dbe86385-a713-4898-8751-377622134883 (enforcing)
+
+active
+active
+active
+active
+active
+active
+active
+active
+NTPSynchronized=yes
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no

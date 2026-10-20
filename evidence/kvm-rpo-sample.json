@@ -1,0 +1,17 @@
+{
+  "created_utc": "2026-10-20T11:20:43.594244+00:00",
+  "source_guest": "ha2",
+  "path": "/mnt/ha/rpo-drill-65ada8242d7d49a7abc87cb6da3f9710.txt",
+  "record_count": 100,
+  "sha256": "945c65bed727ee2949cba1733550c86c419f4c7914918ca096c3ef08544efe50",
+  "sync": "file and containing directory fsync completed",
+  "pre_failure": {
+    "ha1": {"record_count": 100, "sha256_match": true},
+    "ha3": {"record_count": 100, "sha256_match": true}
+  },
+  "after_ha2_destroy": {
+    "ha1": {"record_count": 100, "sha256_match": true},
+    "ha3": {"record_count": 100, "sha256_match": true}
+  },
+  "observed_missing_acknowledged_records": 0
+}

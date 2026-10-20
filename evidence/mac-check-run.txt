@@ -1,0 +1,114 @@
+
+PLAY [Provision virtualization host and local monitoring demonstration] ********
+
+TASK [Gathering Facts] *********************************************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Require Debian and a provisioning public key] ****************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Install host and exporter packages] **************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create node exporter textfile directory for controlled alert tests] ***
+ok: [abrnoc-demo]
+
+TASK [virt_host : Bind node exporter to local monitoring and enable textfile metrics] ***
+ok: [abrnoc-demo]
+
+TASK [virt_host : Bind libvirt exporter to local monitoring] *******************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Grant libvirt exporter access to the libvirt system socket] ***
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create the administration user] ******************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create administrator SSH directory] **************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install administrator public key] ****************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Permit passwordless administration for automation user] ******
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install SSH hardening drop-in] *******************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Remove superseded SSH drop-in] *******************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Validate SSH configuration before reloading] *****************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Inspect effective SSH authentication policy] *****************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Require key-only non-root SSH access] ************************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Configure persistent journald storage] ***********************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create journald configuration directory] *********************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install journald retention configuration] ********************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install conservative kernel settings] ************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install nftables policy] *************************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Enable host services] ****************************************
+ok: [abrnoc-demo] => (item=chrony)
+ok: [abrnoc-demo] => (item=nftables)
+ok: [abrnoc-demo] => (item=rsyslog)
+ok: [abrnoc-demo] => (item=libvirtd)
+ok: [abrnoc-demo] => (item=prometheus-node-exporter)
+ok: [abrnoc-demo] => (item=prometheus-libvirt-exporter)
+
+TASK [virt_host : Bind demo monitoring locally and disable Alertmanager gossip on one host] ***
+ok: [abrnoc-demo] => (item={'service': 'prometheus', 'args': '--web.listen-address=127.0.0.1:9090'})
+ok: [abrnoc-demo] => (item={'service': 'prometheus-alertmanager', 'args': '--web.listen-address=127.0.0.1:9093 --cluster.listen-address='})
+
+TASK [virt_host : Install Prometheus scrape and Alertmanager config] ***********
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install alert rules] *****************************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install Alertmanager routing] ********************************
+--- before: /etc/prometheus/alertmanager.yml
++++ after: <repository>/monitoring/alertmanager.yml
+@@ -2,7 +2,7 @@
+   resolve_timeout: 5m
+ route:
+   receiver: record-only
+-  group_by: ['alertname', 'instance']
++  group_by: ['alertname', 'host']
+   group_wait: 10s
+   group_interval: 5m
+   repeat_interval: 4h
+
+changed: [abrnoc-demo]
+
+TASK [virt_host : Enable demo monitoring services] *****************************
+ok: [abrnoc-demo] => (item=prometheus)
+ok: [abrnoc-demo] => (item=prometheus-alertmanager)
+
+RUNNING HANDLER [virt_host : Restart Alertmanager] *****************************
+changed: [abrnoc-demo]
+
+PLAY RECAP *********************************************************************
+abrnoc-demo                : ok=28   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0

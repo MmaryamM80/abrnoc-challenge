@@ -1,0 +1,20 @@
+  cluster:
+    id:     41f53604-ceda-4bb6-ad8e-3dd1f015bd85
+    health: HEALTH_WARN
+            2 pool(s) have no replicas configured
+
+  services:
+    mon: 1 daemons, quorum ceph1 (age 95m)
+    mgr: ceph1(active, since 95m)
+    osd: 1 osds: 1 up (since 95m), 1 in (since 105m)
+
+  data:
+    pools:   2 pools, 33 pgs
+    objects: 3 objects, 449 KiB
+    usage:   27 MiB used, 8.0 GiB / 8.0 GiB avail
+    pgs:     33 active+clean
+
+HEALTH_WARN 2 pool(s) have no replicas configured
+[WRN] POOL_NO_REDUNDANCY: 2 pool(s) have no replicas configured
+    pool 'lab-objects' has no replicas configured
+    pool '.mgr' has no replicas configured

@@ -1,0 +1,173 @@
+
+PLAY [Create an isolated three-node KVM laboratory on the supplied host] *******
+
+TASK [Gathering Facts] *********************************************************
+ok: [abrnoc-demo]
+
+TASK [Require enough memory for three lab nodes] *******************************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Require Debian and a provisioning public key] ****************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Install host and exporter packages] **************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create node exporter textfile directory for controlled alert tests] ***
+ok: [abrnoc-demo]
+
+TASK [virt_host : Bind node exporter to local monitoring and enable textfile metrics] ***
+ok: [abrnoc-demo]
+
+TASK [virt_host : Bind libvirt exporter to local monitoring] *******************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Grant libvirt exporter access to the libvirt system socket] ***
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create the administration user] ******************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create administrator SSH directory] **************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install administrator public key] ****************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Permit passwordless administration for automation user] ******
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install SSH hardening drop-in] *******************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Remove superseded SSH drop-in] *******************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Validate SSH configuration before reloading] *****************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Inspect effective SSH authentication policy] *****************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Require key-only non-root SSH access] ************************
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [virt_host : Configure persistent journald storage] ***********************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Create journald configuration directory] *********************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install journald retention configuration] ********************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install conservative kernel settings] ************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install nftables policy] *************************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Enable host services] ****************************************
+ok: [abrnoc-demo] => (item=chrony)
+ok: [abrnoc-demo] => (item=nftables)
+ok: [abrnoc-demo] => (item=rsyslog)
+ok: [abrnoc-demo] => (item=libvirtd)
+ok: [abrnoc-demo] => (item=prometheus-node-exporter)
+ok: [abrnoc-demo] => (item=prometheus-libvirt-exporter)
+
+TASK [virt_host : Bind demo monitoring locally and disable Alertmanager gossip on one host] ***
+ok: [abrnoc-demo] => (item={'service': 'prometheus', 'args': '--web.listen-address=127.0.0.1:9090'})
+ok: [abrnoc-demo] => (item={'service': 'prometheus-alertmanager', 'args': '--web.listen-address=127.0.0.1:9093 --cluster.listen-address='})
+
+TASK [virt_host : Install Prometheus scrape and Alertmanager config] ***********
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install alert rules] *****************************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Install Alertmanager routing] ********************************
+ok: [abrnoc-demo]
+
+TASK [virt_host : Enable demo monitoring services] *****************************
+ok: [abrnoc-demo] => (item=prometheus)
+ok: [abrnoc-demo] => (item=prometheus-alertmanager)
+
+TASK [Apply lab network firewall rule before starting guests] ******************
+
+TASK [Create lab image directory] **********************************************
+ok: [abrnoc-demo]
+
+TASK [Fetch the official Debian 13 cloud image] ********************************
+ok: [abrnoc-demo]
+
+TASK [Start the isolated libvirt NAT network] **********************************
+ok: [abrnoc-demo]
+
+TASK [Inspect libvirt network autostart] ***************************************
+ok: [abrnoc-demo]
+
+TASK [Make the lab NAT network persistent] *************************************
+skipping: [abrnoc-demo]
+
+TASK [Inspect DHCP reservations] ***********************************************
+ok: [abrnoc-demo]
+
+TASK [Reserve stable lab addresses] ********************************************
+skipping: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+skipping: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+skipping: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+skipping: [abrnoc-demo]
+
+TASK [Create cloud-init user data] *********************************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+TASK [Create cloud-init instance metadata] *************************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+TASK [Inspect existing seed images] ********************************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+TASK [Build cloud-init seed images] ********************************************
+skipping: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+skipping: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+skipping: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+skipping: [abrnoc-demo]
+
+TASK [Create sparse guest disks on the base image] *****************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+TASK [Inspect existing domains] ************************************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+TASK [Define and boot KVM lab nodes] *******************************************
+skipping: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+skipping: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+skipping: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+skipping: [abrnoc-demo]
+
+TASK [Wait until each guest has SSH] *******************************************
+ok: [abrnoc-demo] => (item={'name': 'ha1', 'mac': '52:54:00:ab:10:21', 'ip': '192.168.122.121'})
+ok: [abrnoc-demo] => (item={'name': 'ha2', 'mac': '52:54:00:ab:10:22', 'ip': '192.168.122.122'})
+ok: [abrnoc-demo] => (item={'name': 'ha3', 'mac': '52:54:00:ab:10:23', 'ip': '192.168.122.123'})
+
+PLAY RECAP *********************************************************************
+abrnoc-demo                : ok=39   changed=0    unreachable=0    failed=0    skipped=4    rescued=0    ignored=0

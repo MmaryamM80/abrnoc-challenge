@@ -1,0 +1,32 @@
+all:
+  children:
+    ceph_lab:
+      hosts:
+        ceph1:
+          ansible_host: 192.168.122.124
+          ansible_user: ansible
+          ansible_become: true
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+          ansible_ssh_common_args: -o ProxyJump=ansible@104.194.148.88 -o StrictHostKeyChecking=accept-new
+    ceph_ha_new:
+      hosts:
+        ceph2:
+          ansible_host: 192.168.122.125
+          ceph_osd_serial: CEPHOSD2
+          ansible_user: ansible
+          ansible_become: true
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+          ansible_ssh_common_args: -o ProxyJump=ansible@104.194.148.88 -o StrictHostKeyChecking=accept-new
+        ceph3:
+          ansible_host: 192.168.122.126
+          ceph_osd_serial: CEPHOSD3
+          ansible_user: ansible
+          ansible_become: true
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+          ansible_ssh_common_args: -o ProxyJump=ansible@104.194.148.88 -o StrictHostKeyChecking=accept-new
+    ceph_ha:
+      vars:
+        ansible_become_timeout: 30
+      children:
+        ceph_lab: {}
+        ceph_ha_new: {}

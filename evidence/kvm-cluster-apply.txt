@@ -1,0 +1,132 @@
+
+PLAY [Configure replicated lab storage and a failover service] *****************
+
+TASK [Gathering Facts] *********************************************************
+ok: [ha2]
+ok: [ha1]
+ok: [ha3]
+
+TASK [Wait for cloud-init to finish] *******************************************
+ok: [ha2]
+ok: [ha1]
+ok: [ha3]
+
+TASK [Register fixed lab node names] *******************************************
+changed: [ha3]
+changed: [ha1]
+changed: [ha2]
+
+TASK [Install replication, web and failover tools] *****************************
+changed: [ha2]
+changed: [ha1]
+changed: [ha3]
+
+TASK [Enable Gluster server] ***************************************************
+changed: [ha2]
+changed: [ha1]
+changed: [ha3]
+
+TASK [Create storage brick and client directories] *****************************
+changed: [ha3] => (item=/srv/gluster/brick/ha)
+changed: [ha2] => (item=/srv/gluster/brick/ha)
+changed: [ha1] => (item=/srv/gluster/brick/ha)
+changed: [ha3] => (item=/mnt/ha)
+changed: [ha2] => (item=/mnt/ha)
+changed: [ha1] => (item=/mnt/ha)
+
+TASK [Inspect peer membership] *************************************************
+ok: [ha1]
+
+TASK [Join the other two Gluster servers] **************************************
+changed: [ha1] => (item=ha2)
+changed: [ha1] => (item=ha3)
+
+TASK [Wait for Gluster peers to connect] ***************************************
+ok: [ha1]
+
+TASK [Inspect replicated volume] ***********************************************
+ok: [ha1]
+
+TASK [Create a three-way replicated volume] ************************************
+changed: [ha1]
+
+TASK [Start the replicated volume] *********************************************
+changed: [ha1]
+
+TASK [Inspect Gluster client quorum] *******************************************
+ok: [ha1]
+
+TASK [Require two of three bricks for writes] **********************************
+skipping: [ha1]
+
+TASK [Persist Gluster mounts] **************************************************
+changed: [ha2]
+changed: [ha1]
+changed: [ha3]
+
+TASK [Inspect the client mount] ************************************************
+ok: [ha2]
+ok: [ha3]
+ok: [ha1]
+
+TASK [Mount the replicated volume] *********************************************
+changed: [ha2]
+changed: [ha1]
+changed: [ha3]
+
+TASK [Create shared web directory] *********************************************
+changed: [ha1]
+
+TASK [Publish a shared health page] ********************************************
+changed: [ha1]
+
+TASK [Configure nginx to serve replicated data] ********************************
+changed: [ha2]
+changed: [ha3]
+changed: [ha1]
+
+TASK [Enable nginx] ************************************************************
+ok: [ha1]
+ok: [ha2]
+ok: [ha3]
+
+TASK [Install failover health check] *******************************************
+changed: [ha2]
+changed: [ha1]
+changed: [ha3]
+
+TASK [Configure a lab-only failover IP] ****************************************
+changed: [ha2]
+changed: [ha3]
+changed: [ha1]
+
+TASK [Enable failover service] *************************************************
+changed: [ha2]
+changed: [ha3]
+changed: [ha1]
+
+TASK [Apply configuration before validating service] ***************************
+
+TASK [Apply configuration before validating service] ***************************
+
+TASK [Apply configuration before validating service] ***************************
+
+RUNNING HANDLER [Reload nginx] *************************************************
+changed: [ha2]
+changed: [ha1]
+changed: [ha3]
+
+RUNNING HANDLER [Restart keepalived] *******************************************
+changed: [ha2]
+changed: [ha3]
+changed: [ha1]
+
+TASK [Check the local shared page] *********************************************
+ok: [ha1]
+ok: [ha2]
+ok: [ha3]
+
+PLAY RECAP *********************************************************************
+ha1                        : ok=26   changed=17   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+ha2                        : ok=17   changed=12   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+ha3                        : ok=17   changed=12   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0

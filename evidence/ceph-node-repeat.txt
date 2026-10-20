@@ -1,0 +1,181 @@
+
+PLAY [Bootstrap an isolated single-node Ceph functional lab] *******************
+
+TASK [Gathering Facts] *********************************************************
+[WARNING]: Host 'ceph1' is using the discovered Python interpreter at '/usr/bin/python3.13', but future installation of another Python interpreter could cause a different interpreter to be discovered. See https://docs.ansible.com/ansible-core/2.19/reference_appendices/interpreter_discovery.html for more information.
+ok: [ceph1]
+
+TASK [Require the dedicated OSD disk and expected guest address] ***************
+ok: [ceph1] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Install Debian Ceph packages] ********************************************
+ok: [ceph1]
+
+TASK [Ensure Ceph configuration directory exists] ******************************
+ok: [ceph1]
+
+TASK [Check persistent cluster identity] ***************************************
+ok: [ceph1]
+
+TASK [Generate cluster identity once] ******************************************
+skipping: [ceph1]
+
+TASK [Persist cluster identity] ************************************************
+skipping: [ceph1]
+
+TASK [Read persistent cluster identity] ****************************************
+ok: [ceph1]
+
+TASK [Render Ceph configuration] ***********************************************
+ok: [ceph1]
+
+TASK [Create monitor secret] ***************************************************
+ok: [ceph1]
+
+TASK [Create administrator secret] *********************************************
+ok: [ceph1]
+
+TASK [Make bootstrap OSD key directory] ****************************************
+ok: [ceph1]
+
+TASK [Create OSD bootstrap secret] *********************************************
+ok: [ceph1]
+
+TASK [Restrict Ceph secret permissions] ****************************************
+ok: [ceph1] => (item=/etc/ceph/ceph.mon.keyring)
+ok: [ceph1] => (item=/etc/ceph/ceph.client.admin.keyring)
+ok: [ceph1] => (item=/var/lib/ceph/bootstrap-osd/ceph.keyring)
+
+TASK [Check monitor initialization] ********************************************
+ok: [ceph1]
+
+TASK [Import bootstrap identities into monitor keyring] ************************
+skipping: [ceph1] => (item=(censored due to no_log))
+skipping: [ceph1] => (item=(censored due to no_log))
+skipping: [ceph1]
+
+TASK [Build monitor map] *******************************************************
+skipping: [ceph1]
+
+TASK [Make monitor directory] **************************************************
+ok: [ceph1]
+
+TASK [Initialize monitor database] *********************************************
+ok: [ceph1]
+
+TASK [Start monitor] ***********************************************************
+ok: [ceph1]
+
+TASK [Wait for monitor quorum] *************************************************
+ok: [ceph1]
+
+TASK [Inspect monitor address protocols] ***************************************
+ok: [ceph1]
+
+TASK [Enable Ceph messenger v2] ************************************************
+skipping: [ceph1]
+
+TASK [Read insecure global ID reclaim setting] *********************************
+ok: [ceph1]
+
+TASK [Disallow insecure global ID reclaim] *************************************
+skipping: [ceph1]
+
+TASK [Make manager directory] **************************************************
+ok: [ceph1]
+
+TASK [Register and create manager identity] ************************************
+ok: [ceph1]
+
+TASK [Restrict manager secret] *************************************************
+ok: [ceph1]
+
+TASK [Identify Debian Ceph manager package version] ****************************
+ok: [ceph1]
+
+TASK [Replace bcrypt import in the affected Debian manager] ********************
+ok: [ceph1]
+
+TASK [Replace bcrypt salt generation in the affected Debian manager] ***********
+ok: [ceph1]
+
+TASK [Replace bcrypt password hashing in the affected Debian manager] **********
+ok: [ceph1]
+
+TASK [Start manager] ***********************************************************
+ok: [ceph1]
+
+TASK [Apply manager compatibility fix before health checks] ********************
+
+TASK [Read enabled manager modules] ********************************************
+ok: [ceph1]
+
+TASK [Disable the unused Debian restful module] ********************************
+skipping: [ceph1]
+
+TASK [Restart manager after disabling the module] ******************************
+
+TASK [Check whether an OSD already exists] *************************************
+ok: [ceph1]
+
+TASK [Read dedicated disk serial before provisioning] **************************
+skipping: [ceph1]
+
+TASK [Inspect disk signatures before provisioning] *****************************
+skipping: [ceph1]
+
+TASK [Require the empty dedicated OSD disk] ************************************
+skipping: [ceph1]
+
+TASK [Provision the dedicated OSD disk] ****************************************
+skipping: [ceph1]
+
+TASK [Read single-replica lab permission] **************************************
+ok: [ceph1]
+
+TASK [Allow size-one pools only in this isolated lab] **************************
+skipping: [ceph1]
+
+TASK [List existing Ceph pools] ************************************************
+ok: [ceph1]
+
+TASK [Create functional object test pool] **************************************
+skipping: [ceph1]
+
+TASK [Read object pool applications] *******************************************
+ok: [ceph1]
+
+TASK [Enable RADOS application on test pool] ***********************************
+skipping: [ceph1]
+
+TASK [Read Ceph health after OSD provisioning] *********************************
+ok: [ceph1]
+
+TASK [Show Ceph status] ********************************************************
+ok: [ceph1] => {
+    "ceph_status.stdout_lines": [
+        "  cluster:",
+        "    id:     41f53604-ceda-4bb6-ad8e-3dd1f015bd85",
+        "    health: HEALTH_WARN",
+        "            2 pool(s) have no replicas configured",
+        "            1 mgr modules have recently crashed",
+        " ",
+        "  services:",
+        "    mon: 1 daemons, quorum ceph1 (age 3m)",
+        "    mgr: ceph1(active, since 2m)",
+        "    osd: 1 osds: 1 up (since 2m), 1 in (since 13m)",
+        " ",
+        "  data:",
+        "    pools:   2 pools, 33 pgs",
+        "    objects: 3 objects, 449 KiB",
+        "    usage:   27 MiB used, 8.0 GiB / 8.0 GiB avail",
+        "    pgs:     33 active+clean",
+        " "
+    ]
+}
+
+PLAY RECAP *********************************************************************
+ceph1                      : ok=34   changed=0    unreachable=0    failed=0    skipped=14   rescued=0    ignored=0

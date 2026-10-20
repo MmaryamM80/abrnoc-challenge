@@ -1,0 +1,33 @@
+global_defs {
+    enable_script_security
+    script_user root
+}
+
+vrrp_script check_shared_http {
+    script "/usr/local/sbin/ha-health.sh"
+    interval 2
+    fall 2
+    rise 2
+    weight -100
+}
+
+vrrp_instance LAB_VIP {
+    state BACKUP
+    interface {{ ansible_facts['default_ipv4']['interface'] }}
+    virtual_router_id 51
+    priority {{ ha_priority }}
+    advert_int 1
+    nopreempt
+    unicast_src_ip {{ ansible_host }}
+    unicast_peer {
+{% for peer in groups['ha_nodes'] if peer != inventory_hostname %}
+        {{ hostvars[peer]['ansible_host'] }}
+{% endfor %}
+    }
+    virtual_ipaddress {
+        {{ ha_vip }}/24 dev {{ ansible_facts['default_ipv4']['interface'] }}
+    }
+    track_script {
+        check_shared_http
+    }
+}

@@ -1,0 +1,52 @@
+---
+- name: Bind demo monitoring locally and disable Alertmanager gossip on one host
+  ansible.builtin.copy:
+    content: 'ARGS="{{ item.args }}"'
+    dest: "/etc/default/{{ item.service }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop:
+    - { service: prometheus, args: '--web.listen-address=127.0.0.1:9090' }
+    - { service: prometheus-alertmanager, args: '--web.listen-address=127.0.0.1:9093 --cluster.listen-address=' }
+  notify:
+    - Reload Prometheus
+    - Restart Alertmanager
+
+- name: Install Prometheus scrape and Alertmanager config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+  notify: Reload Prometheus
+
+- name: Install alert rules
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/virt-host-alerts.yml"
+    dest: /etc/prometheus/virt-host-alerts.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+    validate: '/usr/bin/promtool check rules %s'
+  notify: Reload Prometheus
+
+- name: Install Alertmanager routing
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/alertmanager.yml"
+    dest: /etc/prometheus/alertmanager.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+    validate: '/usr/bin/amtool check-config %s'
+  notify: Restart Alertmanager
+
+- name: Enable demo monitoring services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - prometheus
+    - prometheus-alertmanager

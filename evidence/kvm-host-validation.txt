@@ -1,0 +1,32 @@
+Read-only live checks on the supplied VM, October 20, 2026.
+
+Command: sudo -n virt-host-validate qemu
+  QEMU: Checking for hardware virtualization                                 : PASS
+  QEMU: Checking if device '/dev/kvm' exists                                 : PASS
+  QEMU: Checking if device '/dev/kvm' is accessible                          : PASS
+  QEMU: Checking if device '/dev/vhost-net' exists                           : PASS
+  QEMU: Checking if device '/dev/net/tun' exists                             : PASS
+  QEMU: Checking for cgroup 'cpu' controller support                         : PASS
+  QEMU: Checking for cgroup 'cpuacct' controller support                      : PASS
+  QEMU: Checking for cgroup 'cpuset' controller support                       : PASS
+  QEMU: Checking for cgroup 'memory' controller support                       : PASS
+  QEMU: Checking for cgroup 'devices' controller support                      : PASS
+  QEMU: Checking for cgroup 'blkio' controller support                       : PASS
+  QEMU: Checking for device assignment IOMMU support                         : WARN (No ACPI IVRS table found, IOMMU either disabled in BIOS or not supported by this hardware platform)
+  QEMU: Checking for secure guest support                                    : WARN (Unknown if this platform has Secure Guest support)
+
+Command: sudo -n virsh -c qemu:///system list --all
+ Id   Name   State
+--------------------
+
+Command: systemctl is-active chrony nftables rsyslog libvirtd prometheus-node-exporter prometheus-libvirt-exporter prometheus prometheus-alertmanager
+active
+active
+active
+active
+active
+active
+active
+active
+
+This proves that the nested KVM interface and host services are available. It does not prove that a guest has been booted, that PCI device assignment works, or that secure guests are supported.

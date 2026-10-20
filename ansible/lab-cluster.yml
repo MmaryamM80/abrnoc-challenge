@@ -1,0 +1,198 @@
+---
+- name: Configure replicated lab storage and a failover service
+  hosts: ha_nodes
+  become: true
+  gather_facts: true
+  vars:
+    ha_vip: 192.168.122.130
+    ha_volume: ha
+  tasks:
+    - name: Wait for cloud-init to finish
+      ansible.builtin.command: cloud-init status --wait
+      changed_when: false
+
+    - name: Register fixed lab node names
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        marker: '# {mark} ABRNOC HA LAB'
+        block: |
+          192.168.122.121 ha1
+          192.168.122.122 ha2
+          192.168.122.123 ha3
+
+    - name: Install replication, web and failover tools
+      ansible.builtin.apt:
+        name:
+          - glusterfs-server
+          - glusterfs-client
+          - nginx
+          - keepalived
+          - curl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+        lock_timeout: 300
+
+    - name: Enable Gluster server
+      ansible.builtin.systemd_service:
+        name: glusterd
+        enabled: true
+        state: started
+
+    - name: Create storage brick and client directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /srv/gluster/brick/ha
+        - /mnt/ha
+
+    - name: Inspect peer membership
+      ansible.builtin.command: gluster peer status
+      register: ha_peer_status
+      changed_when: false
+      run_once: true
+
+    - name: Join the other two Gluster servers
+      ansible.builtin.command: "gluster peer probe {{ item }}"
+      loop: [ha2, ha3]
+      when: item not in ha_peer_status.stdout
+      run_once: true
+
+    - name: Wait for Gluster peers to connect
+      ansible.builtin.command: gluster peer status
+      register: ha_peers_ready
+      until: ha_peers_ready.stdout | regex_findall('Peer in Cluster \(Connected\)') | length == 2
+      retries: 20
+      delay: 3
+      changed_when: false
+      run_once: true
+
+    - name: Inspect replicated volume
+      ansible.builtin.command: gluster volume info ha
+      register: ha_volume_info
+      failed_when: false
+      changed_when: false
+      run_once: true
+
+    - name: Create a three-way replicated volume
+      ansible.builtin.command: >-
+        gluster volume create ha replica 3
+        ha1:/srv/gluster/brick/ha
+        ha2:/srv/gluster/brick/ha
+        ha3:/srv/gluster/brick/ha force
+      when: ha_volume_info.rc != 0
+      run_once: true
+
+    - name: Start the replicated volume
+      ansible.builtin.command: gluster volume start ha
+      when: "ha_volume_info.rc != 0 or 'Status: Started' not in ha_volume_info.stdout"
+      run_once: true
+
+    - name: Inspect Gluster client quorum
+      ansible.builtin.command: gluster volume get ha cluster.quorum-type
+      register: ha_quorum
+      changed_when: false
+      run_once: true
+
+    - name: Require two of three bricks for writes
+      ansible.builtin.command: gluster volume set ha cluster.quorum-type auto
+      when: "'auto' not in ha_quorum.stdout"
+      run_once: true
+
+    - name: Persist Gluster mounts
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^ha1:/ha '
+        line: 'ha1:/ha /mnt/ha glusterfs defaults,_netdev,nofail,backup-volfile-servers=ha2:ha3 0 0'
+
+    - name: Inspect the client mount
+      ansible.builtin.command: mountpoint -q /mnt/ha
+      register: ha_mount
+      failed_when: false
+      changed_when: false
+
+    - name: Mount the replicated volume
+      ansible.builtin.command: mount /mnt/ha
+      when: ha_mount.rc != 0
+
+    - name: Create shared web directory
+      ansible.builtin.file:
+        path: /mnt/ha/www
+        state: directory
+        mode: '0755'
+      run_once: true
+
+    - name: Publish a shared health page
+      ansible.builtin.copy:
+        dest: /mnt/ha/www/index.html
+        content: "AbrNOC KVM HA lab: shared volume online\n"
+        mode: '0644'
+      run_once: true
+
+    - name: Configure nginx to serve replicated data
+      ansible.builtin.copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          server {
+              listen 80 default_server;
+              server_name _;
+              root /mnt/ha/www;
+              location / { try_files $uri $uri/ =404; }
+          }
+        mode: '0644'
+      notify: Reload nginx
+
+    - name: Enable nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        enabled: true
+        state: started
+
+    - name: Install failover health check
+      ansible.builtin.copy:
+        dest: /usr/local/sbin/ha-health.sh
+        content: |
+          #!/bin/sh
+          mountpoint -q /mnt/ha || exit 1
+          curl -fsS --max-time 2 http://127.0.0.1/ >/dev/null
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Restart keepalived
+
+    - name: Configure a lab-only failover IP
+      ansible.builtin.template:
+        src: templates/keepalived.conf.j2
+        dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart keepalived
+
+    - name: Enable failover service
+      ansible.builtin.systemd_service:
+        name: keepalived
+        enabled: true
+        state: started
+
+    - name: Apply configuration before validating service
+      ansible.builtin.meta: flush_handlers
+
+    - name: Check the local shared page
+      ansible.builtin.uri:
+        url: http://127.0.0.1/
+        return_content: true
+      register: ha_http
+      failed_when: "'shared volume online' not in ha_http.content"
+
+  handlers:
+    - name: Reload nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: reloaded
+    - name: Restart keepalived
+      ansible.builtin.systemd_service:
+        name: keepalived
+        state: restarted

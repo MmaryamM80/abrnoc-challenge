@@ -1,0 +1,30 @@
+
+PLAY [Verify only the Ceph lab remains on the supplied KVM host] ***************
+
+TASK [List defined guests] *****************************************************
+ok: [abrnoc-demo]
+
+TASK [Check Ceph guest state] **************************************************
+ok: [abrnoc-demo]
+
+TASK [Read the lab network reservations] ***************************************
+ok: [abrnoc-demo]
+
+TASK [Inspect the retired lab directory] ***************************************
+ok: [abrnoc-demo]
+
+TASK [Require active Ceph guest and absence of former Gluster resources] *******
+ok: [abrnoc-demo] => {
+    "changed": false,
+    "msg": "All assertions passed"
+}
+
+TASK [Show remaining defined guests] *******************************************
+ok: [abrnoc-demo] => {
+    "defined_guests.stdout_lines": [
+        "ceph1"
+    ]
+}
+
+PLAY RECAP *********************************************************************
+abrnoc-demo                : ok=6    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0

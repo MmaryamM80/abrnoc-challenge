@@ -1,0 +1,7 @@
+---
+- name: Provision virtualization host and local monitoring demonstration
+  hosts: virt_hosts
+  become: true
+  gather_facts: true
+  roles:
+    - virt_host
