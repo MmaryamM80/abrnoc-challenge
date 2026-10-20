@@ -1,0 +1,4 @@
+---
+virt_host_admin_user: ansible
+virt_host_admin_public_key: "{{ lookup('file', playbook_dir + '/../keys/admin.pub') | trim }}"
+virt_host_ssh_port: 22

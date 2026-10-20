@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure one nested-guest Ceph failure sample from the Mac controller.
+"""Measure one nested-guest Ceph failure sample over SSH.
 
 The sample exercises loss of ceph1 while ceph2 and ceph3 continue on the
 same outer KVM host. It does not measure physical-host failure tolerance.
@@ -23,7 +23,7 @@ def utc_now() -> str:
 
 
 def run_ssh(host: str, *args: str, timeout: int = 45) -> str:
-    command = ["cx", "--", "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8"]
+    command = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8"]
     if host == SURVIVOR:
         command += ["-J", OUTER]
     command += [host, *args]
@@ -52,7 +52,7 @@ def main() -> None:
         "scope": "nested KVM guest failure on one outer VM",
         "failed_guest": "ceph1",
         "surviving_guest": "ceph2",
-        "controller": "Mac via SSH and cx",
+        "controller": "SSH controller",
         "created_utc": utc_now(),
         "probe_interval_seconds": 1,
     }

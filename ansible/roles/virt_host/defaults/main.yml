@@ -1,18 +1,6 @@
 ---
-virt_host_admin_user: ansible
-virt_host_admin_public_key: "{{ lookup('file', playbook_dir + '/../keys/admin.pub') | trim }}"
-virt_host_ssh_port: 22
-virt_host_lab_network_enabled: false
 virt_host_node_exporter_textfile_dir: /var/lib/prometheus/node-exporter
-virt_host_demo_monitoring: true
 virt_host_packages:
-  - sudo
-  - chrony
-  - nftables
-  - rsyslog
-  - smartmontools
-  - nvme-cli
-  - mdadm
   - qemu-system-x86
   - qemu-utils
   - libvirt-daemon-system
@@ -20,6 +8,3 @@ virt_host_packages:
   - virtinst
   - prometheus-node-exporter
   - prometheus-libvirt-exporter
-virt_host_demo_packages:
-  - prometheus
-  - prometheus-alertmanager

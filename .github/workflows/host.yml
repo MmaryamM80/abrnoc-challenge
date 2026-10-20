@@ -1,0 +1,106 @@
+name: Validate and deploy virtualization host
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Check the host, or apply the host roles after reviewing a check run
+        required: true
+        type: choice
+        options: [check, apply]
+        default: check
+
+permissions:
+  contents: read
+
+concurrency:
+  group: virt-host-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the requested revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Ansible controller
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --disable-pip-version-check -r requirements-controller.txt
+      - name: Check inventory and playbook syntax
+        run: |
+          .venv/bin/ansible-inventory --list > /dev/null
+          .venv/bin/ansible-playbook ansible/site.yml --syntax-check
+          .venv/bin/ansible-playbook ansible/lab-host.yml --syntax-check
+          .venv/bin/ansible-playbook ansible/ceph-ha-host.yml --syntax-check
+          .venv/bin/ansible-playbook -i ansible/ceph-inventory.yml ansible/ceph-ha-node.yml --syntax-check
+      - name: Confirm local operator files are not tracked
+        run: |
+          test -z "$(git ls-files keys/admin.pub)"
+          test -z "$(git ls-files '.codex/**' '.pmb/**' '.cx/**')"
+
+  server:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: server
+    steps:
+      - name: Check out main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Ansible controller
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --disable-pip-version-check -r requirements-controller.txt
+      - name: Prepare SSH and operator public key
+        env:
+          SERVER_SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+          ADMIN_PUBLIC_KEY: ${{ secrets.ADMIN_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SERVER_SSH_PRIVATE_KEY"
+          test -n "$SERVER_KNOWN_HOSTS"
+          test -n "$ADMIN_PUBLIC_KEY"
+          umask 077
+          mkdir -p "$HOME/.ssh" keys
+          printf '%s\n' "$SERVER_SSH_PRIVATE_KEY" > "$HOME/.ssh/actions_host"
+          printf '%s\n' "$SERVER_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$ADMIN_PUBLIC_KEY" > keys/admin.pub
+          ssh-keygen -y -f "$HOME/.ssh/actions_host" > /dev/null
+          ssh-keygen -lf keys/admin.pub > /dev/null
+      - name: Confirm key-only access to the expected server
+        run: |
+          ssh -i "$HOME/.ssh/actions_host" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes ansible@104.194.148.88 true
+      - name: Check host configuration
+        run: |
+          .venv/bin/ansible-playbook ansible/site.yml \
+            --private-key "$HOME/.ssh/actions_host" --check
+      - name: Apply host configuration
+        if: inputs.mode == 'apply'
+        run: |
+          .venv/bin/ansible-playbook ansible/site.yml \
+            --private-key "$HOME/.ssh/actions_host"
+      - name: Verify repeat run has no changes
+        if: inputs.mode == 'apply'
+        run: |
+          set -o pipefail
+          .venv/bin/ansible-playbook ansible/site.yml \
+            --private-key "$HOME/.ssh/actions_host" \
+            | tee /tmp/ansible-repeat.txt
+          grep -Eq 'abrnoc-demo +: ok=[0-9]+ +changed=0 +unreachable=0 +failed=0' /tmp/ansible-repeat.txt
+      - name: Verify libvirt on the host
+        if: inputs.mode == 'apply'
+        run: |
+          ssh -i "$HOME/.ssh/actions_host" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes ansible@104.194.148.88 \
+            'sudo virsh -c qemu:///system list --all && systemctl is-active libvirtd'

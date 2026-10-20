@@ -1,0 +1,11 @@
+---
+virt_host_ssh_port: 22
+virt_host_lab_network_enabled: false
+virt_host_base_packages:
+  - sudo
+  - chrony
+  - nftables
+  - rsyslog
+  - smartmontools
+  - nvme-cli
+  - mdadm

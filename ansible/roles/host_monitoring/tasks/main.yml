@@ -1,4 +1,11 @@
 ---
+- name: Install demo monitoring packages
+  ansible.builtin.apt:
+    name: "{{ virt_host_demo_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Bind demo monitoring locally and disable Alertmanager gossip on one host
   ansible.builtin.copy:
     content: 'ARGS="{{ item.args }}"'

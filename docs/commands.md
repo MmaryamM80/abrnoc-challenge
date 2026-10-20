@@ -18,12 +18,12 @@ ssh -o BatchMode=yes root@104.194.148.88 'id -un'
 The project was copied to `/opt/abrnoc-virt-host` on the VM. Debian's `ansible-core` and `prometheus-libvirt-exporter` packages were installed as bootstrap dependencies. The playbook was syntax-checked before its first local run on the VM.
 
 ```sh
-cd /opt/abrnoc-virt-host/ansible
-ansible-playbook --syntax-check -i inventory-local.ini site.yml
-ansible-playbook -i inventory-local.ini site.yml
+cd /opt/abrnoc-virt-host
+ansible-playbook -i ansible/inventory-local.ini ansible/site.yml --syntax-check
+ansible-playbook -i ansible/inventory-local.ini ansible/site.yml
 ```
 
-The role installs KVM/libvirt and host utilities, creates the `ansible` administration user with the operator's public key, validates `sshd` and nftables configuration, and starts the services. It sets persistent journald storage, conservative kernel settings, chrony, a restrictive inbound firewall, node exporter, and libvirt exporter. Prometheus and Alertmanager are local demonstration services for this one-host exercise.
+The host playbook now uses four roles: `host_baseline`, `virt_host`, `host_access`, and optional `host_monitoring`. Together they install KVM/libvirt and host utilities, create the `ansible` administration user with the operator's public key, validate `sshd` and nftables configuration, and start the services. They set persistent journald storage, conservative kernel settings, chrony, a restrictive inbound firewall, node exporter, and libvirt exporter. Prometheus and Alertmanager are local demonstration services for this one-host exercise.
 
 ## 3. Verify access and service health
 
@@ -54,22 +54,21 @@ The libvirt exporter process was running but reported `libvirt_up 0`. Its `prome
 Run the same playbook a second time and inspect the `PLAY RECAP`. `changed=0` with `failed=0` is the idempotency acceptance criterion.
 
 ```sh
-cd /opt/abrnoc-virt-host/ansible
-sudo -n ansible-playbook -i inventory-local.ini site.yml
+cd /opt/abrnoc-virt-host
+sudo -n ansible-playbook -i ansible/inventory-local.ini ansible/site.yml
 ```
 
 ### Follow-up run from the operator's Mac
 
-On October 20, 2026, I used an isolated `.venv` with Python 3.12 and `ansible-core==2.19.3` on macOS. The inventory points at the host's `ansible` account and its existing private-key path; no password was placed in the repository or command line. I checked key-based SSH and passwordless sudo first, ran a syntax check and `--check --diff`, inspected the diff, applied the role, and ran it again for idempotence. The exact outputs are saved in [`mac-check-run.txt`](../evidence/mac-check-run.txt), [`mac-apply-run.txt`](../evidence/mac-apply-run.txt), and [`mac-second-run.txt`](../evidence/mac-second-run.txt).
+On October 20, 2026, I used an isolated `.venv` with Python 3.12 and `ansible-core==2.19.3` on macOS. At that time the inventory pointed at the host's `ansible` account and a local private-key path; the current inventory leaves private-key selection to OpenSSH. No password was placed in the repository or command line. I checked key-based SSH and passwordless sudo first, ran a syntax check and `--check --diff`, inspected the diff, applied the playbook, and ran it again for idempotence. The exact historical outputs are saved in [`mac-check-run.txt`](../evidence/mac-check-run.txt), [`mac-apply-run.txt`](../evidence/mac-apply-run.txt), and [`mac-second-run.txt`](../evidence/mac-second-run.txt).
 
 ```sh
 uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python ansible-core==2.19.3
-cd ansible
-../.venv/bin/ansible-playbook --syntax-check -i inventory.ini site.yml
-../.venv/bin/ansible-playbook -i inventory.ini site.yml --check --diff
-../.venv/bin/ansible-playbook -i inventory.ini site.yml --diff
-../.venv/bin/ansible-playbook -i inventory.ini site.yml
+uv pip install --python .venv/bin/python -r requirements-controller.txt
+.venv/bin/ansible-playbook ansible/site.yml --syntax-check
+.venv/bin/ansible-playbook ansible/site.yml --check --diff
+.venv/bin/ansible-playbook ansible/site.yml --diff
+.venv/bin/ansible-playbook ansible/site.yml
 ```
 
 The role's read-only `sshd -t` and `sshd -T` checks now execute during Ansible check mode. The effective-policy assertion is deferred if a check-mode run predicts an SSH drop-in change; the real run verifies the resulting policy before the SSH handler reloads the service.

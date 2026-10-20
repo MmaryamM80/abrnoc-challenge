@@ -17,7 +17,7 @@ The task PDF permits Ceph, LINSTOR/DRBD, **or another justified solution**; it d
 | Service | nginx serves `/mnt/ha/www/index.html` from the replicated mount |
 | Failover | keepalived unicast VRRP moves `192.168.122.130` after a local mount/HTTP health failure |
 
-## Reproduce from the operator Mac
+## Reproduce from a macOS, Ubuntu, or Linux Mint controller
 
 Run these from the repository root after configuring `ansible/inventory.ini` and placing the operator's public key in `keys/admin.pub`:
 

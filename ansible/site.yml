@@ -4,4 +4,8 @@
   become: true
   gather_facts: true
   roles:
+    - host_baseline
     - virt_host
+    - host_access
+    - role: host_monitoring
+      when: virt_host_demo_monitoring | default(true) | bool

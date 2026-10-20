@@ -1,21 +1,14 @@
 ---
-- name: Require Debian and a provisioning public key
-  ansible.builtin.assert:
-    that:
-      - ansible_facts['os_family'] == 'Debian'
-      - virt_host_admin_public_key is match('^ssh-(ed25519|rsa) ')
-    fail_msg: This role needs Debian and a valid SSH public key.
-
-- name: Install host and exporter packages
+- name: Install KVM and exporter packages
   ansible.builtin.apt:
-    name: "{{ virt_host_packages + (virt_host_demo_packages if virt_host_demo_monitoring else []) }}"
+    name: "{{ virt_host_packages }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
 
 - name: Create node exporter textfile directory for controlled alert tests
   ansible.builtin.file:
-    path: /var/lib/prometheus/node-exporter
+    path: "{{ virt_host_node_exporter_textfile_dir }}"
     state: directory
     owner: root
     group: root
@@ -23,7 +16,7 @@
 
 - name: Bind node exporter to local monitoring and enable textfile metrics
   ansible.builtin.copy:
-    content: 'ARGS="--web.listen-address=127.0.0.1:9100 --collector.textfile.directory=/var/lib/prometheus/node-exporter"'
+    content: 'ARGS="--web.listen-address=127.0.0.1:9100 --collector.textfile.directory={{ virt_host_node_exporter_textfile_dir }}"'
     dest: /etc/default/prometheus-node-exporter
     owner: root
     group: root
@@ -46,134 +39,12 @@
     append: true
   notify: Restart exporters
 
-- name: Create the administration user
-  ansible.builtin.user:
-    name: "{{ virt_host_admin_user }}"
-    shell: /bin/bash
-    groups: sudo,libvirt
-    append: true
-    create_home: true
-    state: present
-
-- name: Create administrator SSH directory
-  ansible.builtin.file:
-    path: "/home/{{ virt_host_admin_user }}/.ssh"
-    state: directory
-    owner: "{{ virt_host_admin_user }}"
-    group: "{{ virt_host_admin_user }}"
-    mode: '0700'
-
-- name: Install administrator public key
-  ansible.builtin.copy:
-    content: "{{ virt_host_admin_public_key }}\n"
-    dest: "/home/{{ virt_host_admin_user }}/.ssh/authorized_keys"
-    owner: "{{ virt_host_admin_user }}"
-    group: "{{ virt_host_admin_user }}"
-    mode: '0600'
-
-- name: Permit passwordless administration for automation user
-  ansible.builtin.copy:
-    content: "{{ virt_host_admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
-    dest: "/etc/sudoers.d/90-{{ virt_host_admin_user }}"
-    owner: root
-    group: root
-    mode: '0440'
-    validate: '/usr/sbin/visudo -cf %s'
-
-- name: Install SSH hardening drop-in
-  ansible.builtin.template:
-    src: ssh-hardening.conf.j2
-    dest: /etc/ssh/sshd_config.d/00-virt-host.conf
-    owner: root
-    group: root
-    mode: '0644'
-  register: virt_host_ssh_dropin
-  notify: Reload SSH
-
-- name: Remove superseded SSH drop-in
-  ansible.builtin.file:
-    path: /etc/ssh/sshd_config.d/50-virt-host.conf
-    state: absent
-  register: virt_host_ssh_old_dropin
-  notify: Reload SSH
-
-- name: Validate SSH configuration before reloading
-  ansible.builtin.command: /usr/sbin/sshd -t
-  changed_when: false
-  check_mode: false
-
-- name: Inspect effective SSH authentication policy
-  ansible.builtin.command: /usr/sbin/sshd -T
-  register: virt_host_sshd_effective
-  changed_when: false
-  check_mode: false
-
-- name: Require key-only non-root SSH access
-  ansible.builtin.assert:
-    that:
-      - "'permitrootlogin no' in virt_host_sshd_effective.stdout_lines"
-      - "'passwordauthentication no' in virt_host_sshd_effective.stdout_lines"
-      - "'kbdinteractiveauthentication no' in virt_host_sshd_effective.stdout_lines"
-    fail_msg: SSH authentication policy is overridden; inspect earlier sshd_config drop-ins.
-  when: not ansible_check_mode or not (virt_host_ssh_dropin.changed or virt_host_ssh_old_dropin.changed)
-
-- name: Configure persistent journald storage
-  ansible.builtin.file:
-    path: /var/log/journal
-    state: directory
-    owner: root
-    group: systemd-journal
-    mode: '2755'
-
-- name: Create journald configuration directory
-  ansible.builtin.file:
-    path: /etc/systemd/journald.conf.d
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-
-- name: Install journald retention configuration
-  ansible.builtin.copy:
-    content: "[Journal]\nStorage=persistent\nSystemMaxUse=1G\n"
-    dest: /etc/systemd/journald.conf.d/50-virt-host.conf
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Restart journald
-
-- name: Install conservative kernel settings
-  ansible.builtin.copy:
-    content: "# Keep VM I/O asynchronous capacity and modest host swap tendency.\nfs.aio-max-nr = 1048576\nvm.swappiness = 10\n"
-    dest: /etc/sysctl.d/90-virt-host.conf
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Apply sysctl
-
-- name: Install nftables policy
-  ansible.builtin.template:
-    src: nftables.conf.j2
-    dest: /etc/nftables.conf
-    owner: root
-    group: root
-    mode: '0644'
-    validate: '/usr/sbin/nft -c -f %s'
-  notify: Reload nftables
-
-- name: Enable host services
+- name: Enable virtualization and exporter services
   ansible.builtin.systemd_service:
     name: "{{ item }}"
     enabled: true
     state: started
   loop:
-    - chrony
-    - nftables
-    - rsyslog
     - libvirtd
     - prometheus-node-exporter
     - prometheus-libvirt-exporter
-
-- name: Install local demo monitoring
-  ansible.builtin.import_tasks: monitoring.yml
-  when: virt_host_demo_monitoring

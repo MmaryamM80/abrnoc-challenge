@@ -17,9 +17,22 @@
         that: ansible_facts['memtotal_mb'] | int >= 9500
         fail_msg: This lab needs at least 9.5 GiB RAM on the KVM host.
 
-    - name: Apply host role with isolated libvirt DNS and DHCP access
+    - name: Apply baseline with isolated libvirt DNS and DHCP access
+      ansible.builtin.import_role:
+        name: host_baseline
+
+    - name: Install KVM and exporters
       ansible.builtin.import_role:
         name: virt_host
+
+    - name: Configure administrator access
+      ansible.builtin.import_role:
+        name: host_access
+
+    - name: Install local monitoring
+      ansible.builtin.import_role:
+        name: host_monitoring
+      when: virt_host_demo_monitoring | default(true) | bool
 
     - name: Apply lab network firewall rule before starting guests
       ansible.builtin.meta: flush_handlers

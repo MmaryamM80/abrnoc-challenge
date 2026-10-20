@@ -31,7 +31,7 @@
         - name: Write unique probe content
           ansible.builtin.copy:
             dest: "{{ probe_input }}"
-            content: "Ceph RADOS object round-trip verification from the Mac.\n"
+        content: "Ceph RADOS object round-trip verification from the Ansible controller.\n"
             mode: '0600'
 
         - name: Put probe object

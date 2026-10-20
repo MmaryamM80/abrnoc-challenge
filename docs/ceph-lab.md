@@ -2,7 +2,7 @@
 
 ## The setup
 
-The Mac runs Ansible and holds the operator's SSH key. Ceph runs on the supplied Debian server, inside three KVM guests named `ceph1`, `ceph2`, and `ceph3`. They use the libvirt NAT addresses `192.168.122.124` through `.126`. Each guest has its own 8 GiB virtual OSD disk. The boot images and OSD disks live under `/var/lib/libvirt/images/abrnoc-ceph-lab` on the server. The guests start automatically with libvirt.
+Ansible runs on the operator's macOS, Ubuntu, or Linux Mint computer, which holds the SSH key. Ceph runs on the supplied Debian server, inside three KVM guests named `ceph1`, `ceph2`, and `ceph3`. They use the libvirt NAT addresses `192.168.122.124` through `.126`. Each guest has its own 8 GiB virtual OSD disk. The boot images and OSD disks live under `/var/lib/libvirt/images/abrnoc-ceph-lab` on the server. The guests start automatically with libvirt.
 
 This is a useful test of Ceph quorum and replication, but all three guests depend on one outer VM and its single virtual disk. A failure of that VM, its storage, or its hypervisor takes out every replica. There is no fencing or VM placement controller.
 
@@ -10,7 +10,7 @@ This is a useful test of Ceph quorum and replication, but all three guests depen
 
 `ceph1` was first built and checked as a single-node Ceph lab. Its original object round trip is saved in [the first verification output](../evidence/ceph-final-validation.txt). The [host playbook](../ansible/ceph-ha-host.yml) then created `ceph2` and `ceph3` with distinct OSD disks and DHCP reservations. The [node playbook](../ansible/ceph-ha-node.yml) added their monitors one at a time, joined their managers, initialized their OSDs, and set `.mgr` and `lab-objects` to `size 3` and `min_size 2`.
 
-The exact Mac commands, including syntax checks and repeat runs, are in [Running Ansible from the Mac](ansible-operations.md). The guest inventory uses SSH ProxyJump through the KVM host. The playbook checks each expected IP address and disk serial before provisioning an OSD, and does not reformat an existing OSD on a repeat run. Ceph keyrings stay on the guests and are masked in Ansible output.
+The controller commands, including syntax checks and repeat runs, are in [Running Ansible](ansible-operations.md). The guest inventory uses SSH ProxyJump through the KVM host. The playbook checks each expected IP address and disk serial before provisioning an OSD, and does not reformat an existing OSD on a repeat run. Ceph keyrings stay on the guests and are masked in Ansible output.
 
 The Debian `ceph-mgr` package version `18.2.7+ds-1+deb13u1` hit a Python subinterpreter issue while loading modules. The node playbook applies a version-scoped `python3-crypt-r` workaround and disables the unused `restful` module. A startup crash in the unused `nfs` manager module was inspected in [its crash record](../evidence/ceph-mgr-crash-2026-10-20.json); the playbook now disables it. A later manager restart also logged an `AttributeError` from the `volumes` module; [that crash record](../evidence/ceph-mgr-volumes-crash-2026-10-20.json) is preserved. `volumes` is listed as an always-on module, so the NFS workaround does not cover it. Both inspected crash entries were archived after the managers were running again. Check for new crash entries after any manager restart or package upgrade; the package compatibility issue needs a lasting upstream or package fix.
 
