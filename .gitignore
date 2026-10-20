@@ -42,3 +42,4 @@ evidence/*.txt
 .pmb/
 .cx/
 AGENTS.md
+keys/admin.pub

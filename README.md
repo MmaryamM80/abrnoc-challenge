@@ -14,7 +14,7 @@ On October 20, 2026, the playbook was also run from the operator's Mac over key-
 
 ## Reproduce on a clean Debian VM
 
-1. Put an administrator **public** key in `keys/admin.pub`. Keep its private key on the operator's machine.
+1. Put an administrator **public** key in `keys/admin.pub` on the operator's machine. This file is ignored by Git; keep the private key on the operator's machine as well.
 2. Set `ansible/inventory.ini` to the host address and bootstrap SSH account. On first provisioning, use an account with sudo; after the role completes, use the created `ansible` user.
 3. Run `ansible-playbook -i ansible/inventory.ini ansible/site.yml` from the repository root, or `cd ansible && ansible-playbook -i inventory.ini site.yml`. The role can also be run directly on a host using `inventory-local.ini`.
 4. Run the same command again. A stable host should report `changed=0` and `failed=0`.
